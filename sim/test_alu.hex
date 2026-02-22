@@ -1,0 +1,26 @@
+// ALU Test Program for RISC-V CPU
+// Format: @address data (hex)
+
+@00000000
+00500093    // ADDI x1, x0, 5       x1 = 5
+00300113    // ADDI x2, x0, 3       x2 = 3
+002081B3    // ADD x3, x1, x2       x3 = 8
+40208233    // SUB x4, x1, x2       x4 = 2
+0020F2B3    // AND x5, x1, x2       x5 = 1
+0020E333    // OR x6, x1, x2        x6 = 7
+0020C3B3    // XOR x7, x1, x2       x7 = 6
+00209433    // SLL x8, x1, x2       x8 = 40
+0020D433    // SRL x9, x1, x2       x9 = 0
+4020D4B3    // SRA x10, x1, x2      x10 = 0
+0020A533    // SLT x11, x1, x2      x11 = 0
+0020B5B3    // SLTU x12, x1, x2     x12 = 0
+
+@00000034
+06400693    // ADDI x13, x0, 100    x13 = 100
+FFF00713    // ADDI x14, x0, -1     x14 = -1
+00271B13    // SLLI x22, x14, 2     x22 = -4
+0020B6B3    // SLTU x13, x1, x2     x13 = 0 (5 < 3, unsigned)
+0020A733    // SLT x14, x1, x2      x14 = 0 (5 < 3, signed)
+
+@0000004C
+00100073    // EBREAK               End of test
