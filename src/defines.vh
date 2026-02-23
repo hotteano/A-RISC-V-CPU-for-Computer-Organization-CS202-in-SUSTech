@@ -80,6 +80,18 @@
 `define ALU_NOP          6'b011111  // No operation
 
 //----------------------------------------------------------------------------
+// RV32M Multiply Extension ALU Operations
+//----------------------------------------------------------------------------
+`define ALU_MUL          6'b100000  // Multiply
+`define ALU_MULH         6'b100001  // Multiply High (signed * signed)
+`define ALU_MULHSU       6'b100010  // Multiply High (signed * unsigned)
+`define ALU_MULHU        6'b100011  // Multiply High (unsigned * unsigned)
+`define ALU_DIV          6'b100100  // Divide signed
+`define ALU_DIVU         6'b100101  // Divide unsigned
+`define ALU_REM          6'b100110  // Remainder signed
+`define ALU_REMU         6'b100111  // Remainder unsigned
+
+//----------------------------------------------------------------------------
 // Opcode Definitions
 //----------------------------------------------------------------------------
 `define OPCODE_LOAD      7'b0000011
@@ -149,6 +161,20 @@
 `define FUNCT7_SRL       7'b0000000
 `define FUNCT7_SRA       7'b0100000
 `define FUNCT7_SLL       7'b0000000
+
+//----------------------------------------------------------------------------
+// RV32M Multiply Extension Funct3 Definitions
+//----------------------------------------------------------------------------
+`define FUNCT3_MUL       3'b000
+`define FUNCT3_MULH      3'b001
+`define FUNCT3_MULHSU    3'b010
+`define FUNCT3_MULHU     3'b011
+`define FUNCT3_DIV       3'b100
+`define FUNCT3_DIVU      3'b101
+`define FUNCT3_REM       3'b110
+`define FUNCT3_REMU      3'b111
+
+`define FUNCT7_MUL_DIV   7'b0000001  // M-extension opcode flag
 
 //----------------------------------------------------------------------------
 // Funct12 Definitions (SYSTEM instructions)

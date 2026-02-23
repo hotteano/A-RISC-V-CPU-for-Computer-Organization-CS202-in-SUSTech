@@ -26,6 +26,10 @@ module id_stage (
     input  wire [1:0]  forward_a_sel,
     input  wire [1:0]  forward_b_sel,
     
+    // Stall and flush signals from hazard unit
+    input  wire        stall,
+    input  wire        flush,
+    
     // To ID/EX pipeline register
     output reg  [31:0] pc_out,
     output reg  [31:0] pc_plus4_out,
@@ -82,18 +86,29 @@ module id_stage (
                           (forward_b_sel == 2'b01) ? forward_wb_data :
                           rs2_data;
     
+    // Internal wires for control unit connection
+    wire [5:0]  alu_op_ctrl;
+    wire        alu_src_a_ctrl;
+    wire        alu_src_b_ctrl;
+    wire        mem_read_ctrl;
+    wire        mem_write_ctrl;
+    wire        mem_to_reg_ctrl;
+    wire        reg_write_ctrl;
+    wire        branch_ctrl;
+    wire        jump_ctrl;
+    
     // Control Unit instantiation
     control_unit ctrl (
         .instr(instr),
-        .alu_op(alu_op_out),
-        .alu_src_a(alu_src_a_out),
-        .alu_src_b(alu_src_b_out),
-        .mem_read(mem_read_out),
-        .mem_write(mem_write_out),
-        .mem_to_reg(mem_to_reg_out),
-        .reg_write(reg_write_out),
-        .branch(branch_out),
-        .jump(jump_out),
+        .alu_op(alu_op_ctrl),
+        .alu_src_a(alu_src_a_ctrl),
+        .alu_src_b(alu_src_b_ctrl),
+        .mem_read(mem_read_ctrl),
+        .mem_write(mem_write_ctrl),
+        .mem_to_reg(mem_to_reg_ctrl),
+        .reg_write(reg_write_ctrl),
+        .branch(branch_ctrl),
+        .jump(jump_ctrl),
         .imm_sel(imm_sel),
         .is_ecall(is_ecall),
         .is_ebreak(is_ebreak)
@@ -102,23 +117,61 @@ module id_stage (
     // ID/EX Pipeline Register
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            pc_out       <= 32'd0;
-            pc_plus4_out <= 32'd0;
-            rs1_data_out <= 32'd0;
-            rs2_data_out <= 32'd0;
-            imm_out      <= 32'd0;
-            rs1_addr_out <= 5'd0;
-            rs2_addr_out <= 5'd0;
-            rd_addr_out  <= 5'd0;
-        end else begin
-            pc_out       <= pc;
-            pc_plus4_out <= pc_plus4;
-            rs1_data_out <= rs1_data_fwd;
-            rs2_data_out <= rs2_data_fwd;
-            imm_out      <= imm;
-            rs1_addr_out <= rs1_addr;
-            rs2_addr_out <= rs2_addr;
-            rd_addr_out  <= rd_addr;
+            pc_out         <= 32'd0;
+            pc_plus4_out   <= 32'd0;
+            rs1_data_out   <= 32'd0;
+            rs2_data_out   <= 32'd0;
+            imm_out        <= 32'd0;
+            rs1_addr_out   <= 5'd0;
+            rs2_addr_out   <= 5'd0;
+            rd_addr_out    <= 5'd0;
+            alu_op_out     <= 6'd0;
+            alu_src_a_out  <= 1'b0;
+            alu_src_b_out  <= 1'b0;
+            mem_read_out   <= 1'b0;
+            mem_write_out  <= 1'b0;
+            mem_to_reg_out <= 1'b0;
+            reg_write_out  <= 1'b0;
+            branch_out     <= 1'b0;
+            jump_out       <= 1'b0;
+        end else if (flush) begin
+            // Flush: insert bubble (NOP)
+            pc_out         <= 32'd0;
+            pc_plus4_out   <= 32'd0;
+            rs1_data_out   <= 32'd0;
+            rs2_data_out   <= 32'd0;
+            imm_out        <= 32'd0;
+            rs1_addr_out   <= 5'd0;
+            rs2_addr_out   <= 5'd0;
+            rd_addr_out    <= 5'd0;
+            alu_op_out     <= 6'd0;  // NOP
+            alu_src_a_out  <= 1'b0;
+            alu_src_b_out  <= 1'b0;
+            mem_read_out   <= 1'b0;
+            mem_write_out  <= 1'b0;
+            mem_to_reg_out <= 1'b0;
+            reg_write_out  <= 1'b0;
+            branch_out     <= 1'b0;
+            jump_out       <= 1'b0;
+        end else if (!stall) begin
+            // Normal update
+            pc_out         <= pc;
+            pc_plus4_out   <= pc_plus4;
+            rs1_data_out   <= rs1_data_fwd;
+            rs2_data_out   <= rs2_data_fwd;
+            imm_out        <= imm;
+            rs1_addr_out   <= rs1_addr;
+            rs2_addr_out   <= rs2_addr;
+            rd_addr_out    <= rd_addr;
+            alu_op_out     <= alu_op_ctrl;
+            alu_src_a_out  <= alu_src_a_ctrl;
+            alu_src_b_out  <= alu_src_b_ctrl;
+            mem_read_out   <= mem_read_ctrl;
+            mem_write_out  <= mem_write_ctrl;
+            mem_to_reg_out <= mem_to_reg_ctrl;
+            reg_write_out  <= reg_write_ctrl;
+            branch_out     <= branch_ctrl;
+            jump_out       <= jump_ctrl;
         end
     end
 

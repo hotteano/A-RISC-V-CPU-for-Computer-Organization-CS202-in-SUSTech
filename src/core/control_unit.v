@@ -1,5 +1,5 @@
 //============================================================================
-// Control Unit - Instruction Decoder for RISC-V RV32I
+// Control Unit - Instruction Decoder for RISC-V RV32I + RV32M
 //============================================================================
 `include "defines.vh"
 
@@ -79,16 +79,31 @@ module control_unit (
             
             OPCODE_OP: begin
                 reg_write = 1'b1;
-                case (funct3)
-                    3'b000: alu_op = (funct7[5]) ? `ALU_SUB : `ALU_ADD; // SUB / ADD
-                    3'b001: alu_op = `ALU_SLL;
-                    3'b010: alu_op = `ALU_SLT;
-                    3'b011: alu_op = `ALU_SLTU;
-                    3'b100: alu_op = `ALU_XOR;
-                    3'b101: alu_op = (funct7[5]) ? `ALU_SRA : `ALU_SRL;
-                    3'b110: alu_op = `ALU_OR;
-                    3'b111: alu_op = `ALU_AND;
-                endcase
+                if (funct7 == 7'b0000001) begin
+                    // RV32M Multiply Extension
+                    case (funct3)
+                        3'b000: alu_op = `ALU_MUL;      // MUL
+                        3'b001: alu_op = `ALU_MULH;     // MULH
+                        3'b010: alu_op = `ALU_MULHSU;   // MULHSU
+                        3'b011: alu_op = `ALU_MULHU;    // MULHU
+                        3'b100: alu_op = `ALU_DIV;      // DIV
+                        3'b101: alu_op = `ALU_DIVU;     // DIVU
+                        3'b110: alu_op = `ALU_REM;      // REM
+                        3'b111: alu_op = `ALU_REMU;     // REMU
+                    endcase
+                end else begin
+                    // Standard RV32I ALU operations
+                    case (funct3)
+                        3'b000: alu_op = (funct7[5]) ? `ALU_SUB : `ALU_ADD; // SUB / ADD
+                        3'b001: alu_op = `ALU_SLL;
+                        3'b010: alu_op = `ALU_SLT;
+                        3'b011: alu_op = `ALU_SLTU;
+                        3'b100: alu_op = `ALU_XOR;
+                        3'b101: alu_op = (funct7[5]) ? `ALU_SRA : `ALU_SRL;
+                        3'b110: alu_op = `ALU_OR;
+                        3'b111: alu_op = `ALU_AND;
+                    endcase
+                end
             end
             
             OPCODE_LUI: begin
@@ -109,6 +124,8 @@ module control_unit (
             OPCODE_JAL: begin
                 reg_write = 1'b1;
                 alu_op    = `ALU_JAL;
+                alu_src_a = 1'b1;  // Use PC
+                alu_src_b = 1'b1;  // Use immediate
                 jump      = 1'b1;
                 imm_sel   = IMM_J;
             end
@@ -123,6 +140,8 @@ module control_unit (
             
             OPCODE_BRANCH: begin
                 branch = 1'b1;
+                alu_src_a = 1'b1;  // Use PC for branch target calculation
+                alu_src_b = 1'b1;  // Use immediate
                 imm_sel = IMM_B;
                 case (funct3)
                     3'b000: alu_op = `ALU_BEQ;

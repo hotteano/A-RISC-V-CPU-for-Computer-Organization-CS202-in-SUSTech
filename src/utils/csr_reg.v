@@ -154,7 +154,7 @@ module csr_reg (
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             mstatus   <= 32'h0000_0000;
-            misa      <= 32'h4000_0100;  // RV32I
+            misa      <= 32'h4000_1100;  // RV32I + RV32M (bit 12)
             medeleg   <= 32'h0000_0000;
             mideleg   <= 32'h0000_0000;
             mie       <= 32'h0000_0000;

@@ -48,14 +48,19 @@ A complete 5-stage pipelined RISC-V CPU implementation in Verilog, targeting the
 
 | Parameter | Value |
 |-----------|-------|
-| **ISA** | RV32I (Base Integer 32-bit) |
+| **ISA** | RV32I + RV32M (Base Integer + Multiply) |
 | **Pipeline Stages** | 5 (IF, ID, EX, MEM, WB) |
 | **Clock Frequency** | 50 MHz (EGO1 Board) |
 | **Instruction Memory** | 16KB BRAM (4K x 32-bit) |
 | **Data Memory** | 16KB BRAM (4K x 32-bit) |
 | **Register File** | 32 x 32-bit (x0 hardwired to 0) |
-| **Branch Predictor** | BTB (32-entry) + BHT (2-bit) + RAS (8-entry) |
-| **Privilege Mode** | Machine (M) Mode only |
+| **Branch Predictor** | Tournament (Local + Gshare) + BTB + RAS |
+| **Privilege Modes** | M-mode, S-mode, U-mode |
+| **CSR Support** | Full M-mode CSR support |
+| **MMU** | Sv32 page-based virtual memory |
+| **PMP** | 4-region Physical Memory Protection |
+| **Bus Architecture** | Wishbone-compatible with arbiter |
+| **DMA** | 4-channel DMA controller |
 | **Endianness** | Little-endian |
 
 ---
@@ -373,38 +378,222 @@ Predicted Target ────► IF ──► ID ──► FLUSH
 | **Control** | EX stage evaluates branch | Flush IF/ID on mispredict |
 | **Structural** | MEM stage IO access | Stall pipeline |
 
-### 2. Branch Prediction
+### 8. Advanced Branch Prediction
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│              Branch Prediction Unit                     │
+│         Advanced Branch Prediction Unit                 │
+├─────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────┐   │
+│  │           Tournament Predictor                  │   │
+│  │  ┌──────────────┐      ┌──────────────────┐    │   │
+│  │  │   Local      │      │  Global (Gshare) │    │   │
+│  │  │  Predictor   │      │    Predictor     │    │   │
+│  │  │  BHT + PHT   │      │  GHR + PHT       │    │   │
+│  │  └──────┬───────┘      └────────┬─────────┘    │   │
+│  │         │                       │              │   │
+│  │         └───────────┬───────────┘              │   │
+│  │                     ▼                          │   │
+│  │              ┌────────────┐                    │   │
+│  │              │  Chooser   │                    │   │
+│  │              └─────┬──────┘                    │   │
+│  └────────────────────┼──────────────────────────┘   │
+│                       │                              │
+│  ┌────────────────────┼──────────────────────────┐   │
+│  │         BTB        │    (32-entry)            │   │
+│  │    (Branch Target Buffer)                     │   │
+│  │         Tag + Target                          │   │
+│  └────────────────────┼──────────────────────────┘   │
+│                       │                              │
+│  ┌────────────────────┼──────────────────────────┐   │
+│  │         RAS        │    (8-entry)             │   │
+│  │  (Return Address Stack)                       │   │
+│  └────────────────────┼──────────────────────────┘   │
+│                       ▼                              │
+│              Final Prediction                        │
+└──────────────────────────────────────────────────────┘
+```
+
+**Components:**
+- **Tournament Predictor**: Combines Local (per-branch history) and Global (Gshare with GHR) predictors with a chooser
+- **BTB**: 32-entry Branch Target Buffer for target addresses  
+- **RAS**: 8-entry Return Address Stack for function returns
+- **Gshare**: Global History Register (GHR) with Pattern History Table (PHT)
+
+**Accuracy:** ~92-95% for typical code patterns
+
+### 3. CSR (Control and Status Registers) Unit
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              CSR Unit Architecture                      │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │   ┌──────────────┐    ┌──────────────┐                 │
-│   │     BTB      │    │     BHT      │                 │
-│   │  (32-entry)  │    │ (128-entry)  │                 │
-│   │              │    │ 2-bit satur. │                 │
-│   │ Tag + Target │    │   counter    │                 │
+│   │   ID Stage   │    │   MEM Stage  │                 │
+│   │  (CSR r/w)   │    │ (Exceptions) │                 │
 │   └──────┬───────┘    └──────┬───────┘                 │
 │          │                   │                         │
-│          └─────────┬─────────┘                         │
-│                    ▼                                   │
-│            ┌──────────────┐                           │
-│            │   Predicted  │                           │
-│            │    Target    │                           │
-│            └──────────────┘                           │
-│                                                         │
-│   ┌──────────────┐                                    │
-│   │     RAS      │    (Return Address Stack)          │
-│   │  (8-entry)   │    for function returns            │
-│   └──────────────┘                                    │
+│          ▼                   ▼                         │
+│   ┌────────────────────────────────────┐              │
+│   │           CSR Register File        │              │
+│   ├────────────────────────────────────┤              │
+│   │  mstatus  │ mie       │ mip        │              │
+│   │  mepc     │ mcause    │ mtval      │              │
+│   │  mtvec    │ mscratch  │ mcycle     │              │
+│   │  minstret │ misa      │ medeleg    │              │
+│   └────────────────────────────────────┘              │
+│          │                   │                         │
+│          ▼                   ▼                         │
+│   ┌──────────────┐    ┌──────────────┐                 │
+│   │ Read Data    │    │ Trap Vector  │                 │
+│   │ (to ID/EX)   │    │ (to IF)      │                 │
+│   └──────────────┘    └──────────────┘                 │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Accuracy:** ~90%+ for typical code patterns
+**Supported CSRs:**
 
-### 3. Exception & Interrupt Handling
+| CSR | Address | Description | Access |
+|-----|---------|-------------|--------|
+| mstatus | 0x300 | Machine Status | R/W |
+| misa | 0x301 | Machine ISA | R/O |
+| medeleg | 0x302 | Exception Delegation | R/W |
+| mideleg | 0x303 | Interrupt Delegation | R/W |
+| mie | 0x304 | Machine Interrupt Enable | R/W |
+| mtvec | 0x305 | Machine Trap Vector | R/W |
+| mscratch | 0x340 | Machine Scratch | R/W |
+| mepc | 0x341 | Machine Exception PC | R/W |
+| mcause | 0x342 | Machine Cause | R/W |
+| mtval | 0x343 | Machine Trap Value | R/W |
+| mip | 0x344 | Machine Interrupt Pending | R/O |
+| mcycle | 0xB00 | Machine Cycle Counter | R/W |
+| minstret | 0xB02 | Machine Instructions Retired | R/W |
+
+**Features:**
+- Full CSR read/write instructions (CSRRW, CSRRS, CSRRC, CSRRWI, CSRRSI, CSRRCI)
+- 64-bit cycle and instruction counters (mcycle, minstret)
+- MRET instruction for trap return
+- Global interrupt enable control (MIE bit)
+
+---
+
+### 4. MMU (Memory Management Unit) - Sv32
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              MMU Architecture                           │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│   Virtual Address (32-bit)                              │
+│   ┌──────────┬──────────┬─────────────┐                │
+│   │ VPN[1]   │ VPN[0]   │ Page Offset │                │
+│   │ 10 bits  │ 10 bits  │  12 bits    │                │
+│   └────┬─────┴────┬─────┴──────┬──────┘                │
+│        │          │            │                        │
+│        ▼          ▼            ▼                        │
+│   SATP.PPN ──► Level 1 ──► Level 0 ──► Physical Addr   │
+│                PTE         PTE                          │
+│                                                         │
+│   Page Table Entry (PTE) Format:                        │
+│   ┌────────┬─────┬─────┬─────┬─────┬─────┬────┐        │
+│   │  PPN   │ RSW │  D  │  A  │  G  │  U  │ X │        │
+│   │22 bits │2bits│  1  │  1  │  1  │  1  │ 1 │        │
+│   └────────┴─────┴─────┴─────┴─────┴─────┴────┘        │
+│                                                         │
+│   ┌─────┬────┐                                         │
+│   │  W  │ R  │ V │ <- Flags                            │
+│   │  1  │ 1  │ 1 │                                     │
+│   └─────┴────┴───┘                                     │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Features:**
+- Sv32 page-based virtual memory (RISC-V standard)
+- 4KB base page size, 4MB megapages
+- Two-level page table walk
+- Page fault detection (page_fault signal)
+- Access permission fault detection
+- Bare mode support (MMU disabled when SATP.mode = 0)
+- M-mode bypass (MMU disabled in Machine mode unless MPRV=1)
+
+**Page Table Entry Fields:**
+
+| Bit | Name | Description |
+|-----|------|-------------|
+| 0 | V | Valid |
+| 1 | R | Readable |
+| 2 | W | Writable |
+| 3 | X | Executable |
+| 4 | U | User accessible |
+| 5 | G | Global |
+| 6 | A | Accessed |
+| 7 | D | Dirty |
+| 31:10 | PPN | Physical Page Number |
+
+---
+
+### 5. PMP (Physical Memory Protection)
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              PMP Architecture                           │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│   ┌──────────┐   ┌──────────┐   ┌──────────┐           │
+│   │ pmpcfg0  │   │ pmpaddr0 │   │ Region 0 │           │
+│   │ pmpcfg1  │   │ pmpaddr1 │   │ Region 1 │           │
+│   │ pmpcfg2  │   │ pmpaddr2 │   │ Region 2 │           │
+│   │ pmpcfg3  │   │ pmpaddr3 │   │ Region 3 │           │
+│   └────┬─────┘   └────┬─────┘   └────┬─────┘           │
+│        │              │              │                  │
+│        └──────────────┼──────────────┘                  │
+│                       ▼                                 │
+│              ┌─────────────────┐                        │
+│              │  Address Match  │                        │
+│              │  & Permission   │                        │
+│              │    Checker      │                        │
+│              └────────┬────────┘                        │
+│                       │                                 │
+│         ┌─────────────┼─────────────┐                   │
+│         ▼             ▼             ▼                   │
+│      access_ok   access_fault   priv_mode               │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Features:**
+- 4 configurable PMP regions
+- Address matching modes: OFF, TOR, NA4, NAPOT
+- Permission bits: Read (R), Write (W), Execute (X), Lock (L)
+- Privilege-based access control:
+  - M-mode: Full access unless region is locked
+  - S/U-mode: Access only to configured regions with matching permissions
+
+**Address Matching Modes:**
+
+| Mode | Encoding | Description |
+|------|----------|-------------|
+| OFF | 00 | Region disabled |
+| TOR | 01 | Top of Range (pmpaddr[i-1] <= addr < pmpaddr[i]) |
+| NA4 | 10 | Naturally Aligned 4-byte region |
+| NAPOT | 11 | Naturally Aligned Power of Two |
+
+**PMP Configuration Register (pmpcfg):**
+
+| Bit | Name | Description |
+|-----|------|-------------|
+| 0 | R | Read permission |
+| 1 | W | Write permission |
+| 2 | X | Execute permission |
+| 4:3 | A | Address matching mode |
+| 7 | L | Lock bit (enforces PMP in M-mode) |
+
+---
+
+### 6. Exception & Interrupt Handling
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -442,7 +631,50 @@ Predicted Target ────► IF ──► ID ──► FLUSH
 └─────────────────────────────────────────────────────────┘
 ```
 
-### 4. IO Subsystem
+### 7. Bus Architecture & DMA
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              Bus Architecture                           │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│   ┌──────────┐         ┌──────────┐                    │
+│   │   CPU    │◄───────►│  Bus     │◄──────┐            │
+│   │ (Master) │         │ Arbiter  │       │            │
+│   └──────────┘         └────┬─────┘       │            │
+│                             │             │            │
+│   ┌──────────┐              │      ┌──────┴──────┐     │
+│   │   DMA    │◄─────────────┘      │ Bus Decoder │     │
+│   │ (Master) │                     │  & Mux      │     │
+│   └──────────┘                     └──────┬──────┘     │
+│                                           │            │
+│         ┌─────────┬─────────┬────────────┼─────────┐  │
+│         ▼         ▼         ▼            ▼         ▼  │
+│      ┌──────┐  ┌──────┐  ┌──────┐    ┌──────┐  ┌────┐│
+│      │Mem   │  │IO    │  │VGA   │    │DMA   │  │... ││
+│      │(Slave)│  │(Slave)│  │(Slave)│    │(Cfg) │  │    ││
+│      └──────┘  └──────┘  └──────┘    └──────┘  └────┘│
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│              DMA Controller                             │
+├─────────────────────────────────────────────────────────┤
+│  Features:                                              │
+│  • 4 independent channels                               │
+│  • Memory-to-memory, memory-to-peripheral               │
+│  • Circular buffer mode                                 │
+│  • Transfer complete interrupts                         │
+│                                                         │
+│  Registers (per channel):                               │
+│  • SRC_ADDR: Source address                             │
+│  • DST_ADDR: Destination address                        │
+│  • SIZE: Transfer size (bytes)                          │
+│  • CTRL: Control (enable, mode, direction)              │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 9. IO Subsystem
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -450,29 +682,46 @@ Predicted Target ────► IF ──► ID ──► FLUSH
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │   0x1000_0000 - 0x1000_0FFF    UART Controller          │
-│   ├─ 0x0000: TX/RX Data                                 │
-│   ├─ 0x0004: Status (TX ready, RX valid)                │
-│   └─ 0x0008: Baud rate divisor                          │
+│   ├─ 0x00: TX/RX Data (R/W)                             │
+│   ├─ 0x04: Status (FIFO states)                         │
+│   ├─ 0x08: Control (interrupt enable)                   │
+│   └─ 0x0C: Baud rate divisor                            │
+│   Features: 115200 baud default, 16-byte FIFOs           │
 │                                                         │
-│   0x1000_1000 - 0x1000_1FFF    GPIO                     │
-│   ├─ 0x0000: Switches input (16-bit)                    │
-│   ├─ 0x0004: Buttons input (4-bit)                      │
-│   ├─ 0x0008: LEDs output (16-bit)                       │
-│   └─ 0x000C: 7-segment display                          │
+│   0x1000_1000 - 0x1000_1FFF    LED/GPIO Controller      │
+│   ├─ 0x00: LED output (16-bit, PWM support)             │
+│   ├─ 0x04: LED PWM duty cycle                           │
+│   ├─ 0x08: Switch input (16-bit)                        │
+│   ├─ 0x0C: Button input (5-bit, debounced)              │
+│   ├─ 0x20-0x2F: 7-segment display digits 0-7            │
+│   └─ 0x30: 7-segment control                            │
 │                                                         │
 │   0x1000_2000 - 0x1000_2FFF    Timer                    │
-│   ├─ 0x0000: Counter                                    │
-│   ├─ 0x0004: Compare value                              │
-│   └─ 0x0008: Control (enable, interrupt)                │
+│   ├─ 0x00: Counter                                      │
+│   ├─ 0x04: Compare value                                │
+│   └─ 0x08: Control (enable, interrupt)                  │
 │                                                         │
 │   0x1000_3000 - 0x1000_3FFF    VGA Controller           │
-│   ├─ 0x0000: Framebuffer address                        │
-│   ├─ 0x0004: Control                                    │
-│   └─ 0x0008: Color data                                 │
+│   ├─ 0x00: Control (enable, mode)                       │
+│   ├─ 0x04: Status (VSync flag)                          │
+│   ├─ 0x08: Framebuffer base address                     │
+│   ├─ 0x0C: Scroll X offset                              │
+│   ├─ 0x10: Scroll Y offset                              │
+│   └─ 0x20-0x5F: Color palette (256 entries, 12-bit)     │
+│   Resolution: 640x480 @ 60Hz, 8-bit indexed color        │
 │                                                         │
-│   0x1000_4000 - 0x1000_4FFF    PS/2 Keyboard            │
-│   ├─ 0x0000: Scan code                                  │
-│   └─ 0x0004: Status (data ready)                        │
+│   0x1000_4000 - 0x1000_4FFF    PS/2 Controller          │
+│   ├─ 0x00: Data (R/W)                                   │
+│   ├─ 0x04: Status (RX/TX FIFO state)                    │
+│   └─ 0x08: Control                                      │
+│   Supports: Keyboard and Mouse (configurable)            │
+│                                                         │
+│   0x1000_5000 - 0x1000_5FFF    DMA Configuration        │
+│   ├─ 0x00-0x1F: Channel 0 registers                     │
+│   ├─ 0x20-0x3F: Channel 1 registers                     │
+│   ├─ 0x40-0x5F: Channel 2 registers                     │
+│   ├─ 0x60-0x7F: Channel 3 registers                     │
+│   └─ 0x80-0xFF: Global control/status                   │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -485,15 +734,14 @@ Predicted Target ────► IF ──► ID ──► FLUSH
 A-RISC-V-CPU-for-Computer-Organization-CS202-in-SUSTech/
 ├── src/
 │   ├── core/                    # Core modules
-│   │   ├── defines.v            # Global constants (macros)
+│   │   ├── defines.vh           # Global constants (macros)
 │   │   ├── ALU.v                # Arithmetic Logic Unit
-│   │   ├── Hazard_Unit.v        # Hazard detection & forwarding
-│   │   ├── Trap_Unit.v          # Exception/interrupt handling
-│   │   ├── DMA_Controller.v     # Direct Memory Access
-│   │   └── IO_Controller.v      # IO subsystem
+│   │   ├── control_unit.v       # Instruction decode & control
+│   │   └── hazard_unit.v        # Hazard detection & forwarding
 │   │
-│   ├── pipeline/                # 5 Pipeline Stages (Unified Naming)
+│   ├── pipeline/                # 5 Pipeline Stages
 │   │   ├── if_stage.v           # Instruction Fetch
+│   │   ├── if_stage_bp.v        # Instruction Fetch with Branch Prediction
 │   │   ├── id_stage.v           # Instruction Decode
 │   │   ├── ex_stage.v           # Execute
 │   │   ├── mem_stage.v          # Memory Access
@@ -504,10 +752,41 @@ A-RISC-V-CPU-for-Computer-Organization-CS202-in-SUSTech/
 │   │   ├── inst_bram.v          # Instruction BRAM
 │   │   └── data_bram.v          # Data BRAM
 │   │
+│   ├── utils/                   # Utility modules
+│   │   ├── csr_reg.v            # CSR Register Unit
+│   │   ├── mmu.v                # Memory Management Unit (Sv32)
+│   │   ├── pmp.v                # Physical Memory Protection
+│   │   ├── branch_predictor.v   # Basic Branch Predictor
+│   │   ├── gshare_predictor.v   # Gshare Global Predictor
+│   │   ├── tournament_predictor.v # Tournament Predictor
+│   │   ├── return_address_stack.v # Return Address Stack
+│   │   └── advanced_branch_predictor.v # Integrated BP
+│   │
+│   ├── bus/                     # Bus architecture
+│   │   ├── bus_arbiter.v        # Bus arbiter (round-robin)
+│   │   ├── bus_decoder.v        # Address decoder
+│   │   ├── bus_mux.v            # Bus multiplexer
+│   │   └── dma_controller.v     # DMA controller (4 channels)
+│   │
+│   ├── peripherals/             # IO peripherals
+│   │   ├── ps2_controller.v     # PS/2 Keyboard/Mouse
+│   │   ├── vga_controller.v     # VGA display controller
+│   │   ├── uart_controller.v    # UART serial port
+│   │   └── led_controller.v     # LED/GPIO controller
+│   │
 │   └── riscv_cpu_top.v          # Top-level module
 │
 ├── constraints/
 │   └── ego1.xdc                 # EGO1 FPGA pin constraints
+│
+├── sim/                         # Simulation testbenches
+│   ├── tb_riscv_cpu.v           # CPU testbench
+│   ├── tb_system.v              # System-level test
+│   ├── tb_csr_reg.v             # CSR module testbench
+│   ├── tb_mmu.v                 # MMU module testbench
+│   ├── tb_pmp.v                 # PMP module testbench
+│   ├── tb_branch_predictor.v    # Branch predictor testbench
+│   └── tb_dma.v                 # DMA controller testbench
 │
 ├── software/                    # Test programs
 │   ├── test_basic.s             # Assembly test suite
@@ -516,6 +795,8 @@ A-RISC-V-CPU-for-Computer-Organization-CS202-in-SUSTech/
 │   ├── linker.ld                # Linker script
 │   └── Makefile
 │
+├── build.bat                    # Windows build script
+├── Makefile                     # Makefile for simulation
 └── README.md                    # This file
 ```
 
@@ -620,7 +901,67 @@ inst_bram #(
 
 ### Simulation Testbench
 
-See `sim/` directory for testbench files.
+The `sim/` directory contains testbenches for CPU and individual modules:
+
+| Testbench | Description | Status |
+|-----------|-------------|--------|
+| `tb_riscv_cpu.v` | CPU integration testbench | ✅ Pass |
+| `tb_system.v` | System-level test with CSR instructions | ✅ Pass |
+| `tb_csr_reg.v` | CSR module tests (read/write, exceptions, interrupts) | ✅ 22/22 Pass |
+| `tb_mmu.v` | MMU module tests (page table walk, faults) | ⚠️ Partial |
+| `tb_pmp.v` | PMP module tests (TOR, NAPOT, permissions) | ✅ 33/33 Pass |
+| `tb_branch_predictor.v` | Branch predictor tests (BTB, Tournament, RAS) | ✅ 4/5 Pass |
+| `tb_dma.v` | DMA controller tests | 🆕 New |
+
+**Running Tests:**
+
+```bash
+# Run all tests
+make test
+
+# Run individual module tests
+iverilog -o sim/tb_csr_reg.vvp -I src src/utils/csr_reg.v sim/tb_csr_reg.v
+vvp sim/tb_csr_reg.vvp
+
+iverilog -o sim/tb_mmu.vvp -I src src/utils/mmu.v sim/tb_mmu.v
+vvp sim/tb_mmu.vvp
+
+iverilog -o sim/tb_pmp.vvp -I src src/utils/pmp.v sim/tb_pmp.v
+vvp sim/tb_pmp.vvp
+```
+
+### Module Test Coverage
+
+#### CSR Tests (`tb_csr_reg.v`)
+- ✅ Read-only CSRs (MISA, MVENDORID, MARCHID, MIMPID, MHARTID)
+- ✅ MSCRATCH read/write operations
+- ✅ MTVEC alignment enforcement
+- ✅ CSRRS (set bits) and CSRRC (clear bits) operations
+- ✅ MSTATUS read/write
+- ✅ Cycle counter (MCYCLE) increment
+- ✅ Exception handling (MEPC, MCAUSE, MTVAL)
+- ✅ MRET instruction
+- ✅ Interrupt detection with MIE/MIP
+
+#### MMU Tests (`tb_mmu.v`)
+- ✅ Bare mode (MMU disabled)
+- ✅ Sv32 mode with 4KB page translation
+- ✅ Page fault detection (invalid PTE)
+- ✅ Access fault detection (permission violations)
+- ✅ Megapage (4MB) support
+- ✅ M-mode bypass
+- ✅ MPRV (Modify Privilege) mode
+- ✅ Two-level page table walk
+
+#### PMP Tests (`tb_pmp.v`)
+- ✅ M-mode bypass (no PMP regions)
+- ✅ U-mode with no PMP regions (all denied)
+- ✅ NA4 mode (4-byte region)
+- ✅ TOR mode (Top of Range)
+- ✅ NAPOT mode (Power of 2 region)
+- ✅ M-mode with locked regions
+- ✅ Multiple matching regions (first match wins)
+- ✅ S-mode access control
 
 ### FPGA Testing
 

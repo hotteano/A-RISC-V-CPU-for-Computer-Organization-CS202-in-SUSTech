@@ -72,8 +72,10 @@ module riscv_cpu_top (
     //========================================================================
     
     // Hazard Unit signals
-    wire [1:0]  forward_a;
-    wire [1:0]  forward_b;
+    wire [1:0]  forward_a_id;
+    wire [1:0]  forward_b_id;
+    wire [1:0]  forward_a_ex;
+    wire [1:0]  forward_b_ex;
     wire        pc_stall;
     wire        if_id_stall;
     wire        id_ex_flush;
@@ -128,8 +130,10 @@ module riscv_cpu_top (
         .rs2_addr(rf_rs2_addr),
         .forward_mem_data(ex_mem_alu_result),
         .forward_wb_data(rf_rd_data),
-        .forward_a_sel(forward_a),
-        .forward_b_sel(forward_b),
+        .forward_a_sel(forward_a_id),
+        .forward_b_sel(forward_b_id),
+        .stall(if_id_stall),
+        .flush(id_ex_flush),
         .pc_out(id_ex_pc),
         .pc_plus4_out(id_ex_pc_plus4),
         .rs1_data_out(id_ex_rs1_data),
@@ -174,8 +178,8 @@ module riscv_cpu_top (
         .rd_addr(id_ex_rd_addr),
         .forward_mem_data(ex_mem_alu_result),
         .forward_wb_data(rf_rd_data),
-        .forward_a_sel(forward_a),
-        .forward_b_sel(forward_b),
+        .forward_a_sel(forward_a_ex),
+        .forward_b_sel(forward_b_ex),
         .pc_plus4_out(ex_mem_pc_plus4),
         .alu_result_out(ex_mem_alu_result),
         .rs2_data_out(ex_mem_rs2_data),
@@ -249,6 +253,8 @@ module riscv_cpu_top (
     hazard_unit u_hazard_unit (
         .clk(clk),
         .rst_n(rst_n),
+        .if_id_rs1(if_id_instr[19:15]),   // Extract rs1 from IF/ID instruction
+        .if_id_rs2(if_id_instr[24:20]),   // Extract rs2 from IF/ID instruction
         .id_ex_rs1(id_ex_rs1_addr),
         .id_ex_rs2(id_ex_rs2_addr),
         .id_ex_rd(id_ex_rd_addr),
@@ -258,8 +264,10 @@ module riscv_cpu_top (
         .ex_mem_reg_write(ex_mem_reg_write),
         .mem_wb_rd(mem_wb_rd_addr),
         .mem_wb_reg_write(mem_wb_reg_write),
-        .forward_a(forward_a),
-        .forward_b(forward_b),
+        .forward_a_id(forward_a_id),
+        .forward_b_id(forward_b_id),
+        .forward_a_ex(forward_a_ex),
+        .forward_b_ex(forward_b_ex),
         .pc_stall(pc_stall),
         .if_id_stall(if_id_stall),
         .id_ex_flush(id_ex_flush)
