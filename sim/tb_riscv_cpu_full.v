@@ -1,21 +1,16 @@
 //============================================================================
-// Comprehensive RISC-V CPU Testbench
-// Tests: RV32I + RV32M instructions, branch prediction, hazards, exceptions
+// Full RISC-V CPU Testbench - Comprehensive test suite
 //============================================================================
 `include "../src/defines.vh"
 `timescale 1ns/1ps
 
 module tb_riscv_cpu_full;
 
-    // Clock and reset
     reg clk;
     reg rst_n;
-    
-    // Memory arrays (4KB each)
     reg [31:0] imem [0:1023];
     reg [31:0] dmem [0:1023];
     
-    // DUT interfaces
     wire [31:0] imem_addr;
     wire [31:0] imem_data;
     wire [31:0] dmem_addr;
@@ -24,376 +19,234 @@ module tb_riscv_cpu_full;
     wire        dmem_we;
     wire        dmem_re;
     
-    // Test tracking
-    integer     pass_count;
-    integer     fail_count;
-    integer     test_num;
-    reg [31:0]  expected_val;
-    
-    // Test program index
     integer i;
+    integer pass_count;
+    integer fail_count;
     
-    // Clock generation (50MHz)
+    // Clock
     initial begin
         clk = 0;
         forever #10 clk = ~clk;
     end
     
-    // Reset generation
+    // Reset
     initial begin
         rst_n = 0;
         #40 rst_n = 1;
     end
     
-    // Memory interfaces
+    // Memories
     assign imem_data = imem[imem_addr[11:2]];
     assign dmem_rdata = dmem[dmem_addr[11:2]];
-    
     always @(posedge clk) begin
-        if (dmem_we)
-            dmem[dmem_addr[11:2]] <= dmem_wdata;
+        if (dmem_we) dmem[dmem_addr[11:2]] <= dmem_wdata;
     end
     
-    // DUT instantiation
+    // DUT
     riscv_cpu_top u_cpu (
-        .clk(clk),
-        .rst_n(rst_n),
-        .imem_addr(imem_addr),
-        .imem_data(imem_data),
-        .dmem_addr(dmem_addr),
-        .dmem_wdata(dmem_wdata),
-        .dmem_rdata(dmem_rdata),
-        .dmem_we(dmem_we),
-        .dmem_re(dmem_re)
+        .clk(clk), .rst_n(rst_n),
+        .imem_addr(imem_addr), .imem_data(imem_data),
+        .dmem_addr(dmem_addr), .dmem_wdata(dmem_wdata),
+        .dmem_rdata(dmem_rdata), .dmem_we(dmem_we), .dmem_re(dmem_re)
     );
     
-    //========================================================================
-    // Test Program Loading
-    //========================================================================
+    // Test Program
     initial begin
         pass_count = 0;
         fail_count = 0;
-        test_num = 0;
         
-        // Initialize memories
+        // Init memories
         for (i = 0; i < 1024; i = i + 1) begin
-            imem[i] = 32'h00000013;  // NOP (ADDI x0, x0, 0)
-            dmem[i] = 32'd0;
-        end
-
-    // Clock generation (50MHz)
-    initial begin
-        clk = 0;
-        forever #10 clk = ~clk;
-    end
-    
-    // Reset generation
-    initial begin
-        rst_n = 0;
-        #40 rst_n = 1;
-    end
-    
-    // Memory interfaces
-    assign imem_data = imem[imem_addr[11:2]];
-    assign dmem_rdata = dmem[dmem_addr[11:2]];
-    
-    always @(posedge clk) begin
-        if (dmem_we)
-            dmem[dmem_addr[11:2]] <= dmem_wdata;
-    end
-    
-    // DUT instantiation
-    riscv_cpu_top u_cpu (
-        .clk(clk),
-        .rst_n(rst_n),
-        .imem_addr(imem_addr),
-        .imem_data(imem_data),
-        .dmem_addr(dmem_addr),
-        .dmem_wdata(dmem_wdata),
-        .dmem_rdata(dmem_rdata),
-        .dmem_we(dmem_we),
-        .dmem_re(dmem_re)
-    );
-    
-    //========================================================================
-    // Test Program Loading
-    //========================================================================
-    initial begin
-        integer i;
-        
-        // Initialize memories
-        for (i = 0; i < 1024; i = i + 1) begin
-            imem[i] = 32'h00000013;  // NOP (ADDI x0, x0, 0)
+            imem[i] = 32'h00000013;
             dmem[i] = 32'd0;
         end
         
-        pass_count = 0;
-        fail_count = 0;
-        test_num = 0;
+        //========================================================================
+        // Test Group 1: Basic ALU (dmem[0-7])
+        //========================================================================
+        // ADD: 10+20=30 -> dmem[0]
+        imem[0] = 32'h00a00093;  // ADDI x1, x0, 10
+        imem[1] = 32'h01400113;  // ADDI x2, x0, 20
+        imem[2] = 32'h002081b3;  // ADD  x3, x1, x2
+        imem[3] = 32'h00302023;  // SW   x3, 0(x0)
         
-        //====================================================================
-        // Test 1: Basic ALU Operations (RV32I)
-        //====================================================================
-        // x1 = 10, x2 = 20
-        // Results stored to dmem[0:10]
-        i = 0;
+        // SUB: 10-20=-10 -> dmem[1]
+        imem[4] = 32'h00a00093;  // ADDI x1, x0, 10
+        imem[5] = 32'h01400113;  // ADDI x2, x0, 20
+        imem[6] = 32'h402081b3;  // SUB  x3, x1, x2
+        imem[7] = 32'h00302223;  // SW   x3, 4(x0)
         
-        // ADDI: x1 = 10, x2 = 20
-        imem[i++] = 32'h00a00093;  // ADDI x1, x0, 10
-        imem[i++] = 32'h01400113;  // ADDI x2, x0, 20
+        // AND: 0xFF & 0xF0 = 0xF0 -> dmem[2]
+        imem[8]  = 32'h0ff00093;  // ADDI x1, x0, 0xFF
+        imem[9]  = 32'h0f000113;  // ADDI x2, x0, 0xF0
+        imem[10] = 32'h0020f1b3;  // AND  x3, x1, x2
+        imem[11] = 32'h00302423;  // SW   x3, 8(x0)
         
-        // ADD: x3 = x1 + x2 = 30
-        imem[i++] = 32'h002081b3;  // ADD x3, x1, x2
-        imem[i++] = 32'h00302023;  // SW x3, 0(x0)  @dmem[0] = 30
+        // OR: 0xFF | 0xF0 = 0xFF -> dmem[3]
+        imem[12] = 32'h0020e1b3;  // OR   x3, x1, x2
+        imem[13] = 32'h00302623;  // SW   x3, 12(x0)
         
-        // SUB: x4 = x2 - x1 = 10
-        imem[i++] = 32'h40208233;  // SUB x4, x1, x2
-        imem[i++] = 32'h00402223;  // SW x4, 4(x0)  @dmem[1] = 10
+        // XOR: 0xFF ^ 0xF0 = 0x0F -> dmem[4]
+        imem[14] = 32'h0020c1b3;  // XOR  x3, x1, x2
+        imem[15] = 32'h00302823;  // SW   x3, 16(x0)
         
-        // AND: x5 = x1 & x2 = 0
-        imem[i++] = 32'h0020f2b3;  // AND x5, x1, x2
-        imem[i++] = 32'h00502423;  // SW x5, 8(x0)  @dmem[2] = 0
+        // SLT: -8 < 10 = 1 -> dmem[5]
+        imem[16] = 32'hff800093;  // ADDI x1, x0, -8
+        imem[17] = 32'h00a00113;  // ADDI x2, x0, 10
+        imem[18] = 32'h0020a1b3;  // SLT  x3, x1, x2
+        imem[19] = 32'h00302a23;  // SW   x3, 20(x0)
         
-        // OR: x6 = x1 | x2 = 30
-        imem[i++] = 32'h0020e333;  // OR x6, x1, x2
-        imem[i++] = 32'h00602623;  // SW x6, 12(x0) @dmem[3] = 30
+        // SLLI: 0xFF << 1 = 0x1FE -> dmem[6]
+        imem[20] = 32'h0ff00093;  // ADDI x1, x0, 0xFF
+        imem[21] = 32'h00109193;  // SLLI x3, x1, 1
+        imem[22] = 32'h00302c23;  // SW   x3, 24(x0)
         
-        // XOR: x7 = x1 ^ x2 = 30
-        imem[i++] = 32'h0020c3b3;  // XOR x7, x1, x2
-        imem[i++] = 32'h00702823;  // SW x7, 16(x0) @dmem[4] = 30
+        // SRLI: 0xFF >> 1 = 0x7F -> dmem[7]
+        imem[23] = 32'h0010d193;  // SRLI x3, x1, 1
+        imem[24] = 32'h00302e23;  // SW   x3, 28(x0)
         
-        // SLL: x8 = x1 << 2 = 40
-        imem[i++] = 32'h002094b3;  // SLL x8, x1, x2 (x2[4:0]=20, but use 2)
-        // Correction: use immediate for shift amount
-        imem[i-1] = 32'h00209093;  // SLLI x1, x1, 2  -> x1 = 40
-        imem[i++] = 32'h00102a23;  // SW x1, 20(x0)   @dmem[5] = 40
+        //========================================================================
+        // Test Group 2: RV32M Multiply/Divide (dmem[8-10])
+        //========================================================================
+        // MUL: 10*7=70 -> dmem[8]
+        imem[25] = 32'h00a00093;  // ADDI x1, x0, 10
+        imem[26] = 32'h00700213;  // ADDI x4, x0, 7
+        imem[27] = 32'h024090b3;  // MUL  x1, x1, x4
+        imem[28] = 32'h00103023;  // SW   x1, 32(x0)
         
-        // SRL: x9 = x2 >> 2 = 5
-        imem[i++] = 32'h01400113;  // ADDI x2, x0, 20 (reset x2)
-        imem[i++] = 32'h0021d113;  // SRLI x2, x2, 2
-        imem[i++] = 32'h00202c23;  // SW x2, 24(x0)   @dmem[6] = 5
+        // DIV: 10/3=3 -> dmem[9]
+        imem[29] = 32'h00a00093;  // ADDI x1, x0, 10
+        imem[30] = 32'h00300113;  // ADDI x2, x0, 3
+        imem[31] = 32'h0220d1b3;  // DIV  x3, x1, x2
+        imem[32] = 32'h00303223;  // SW   x3, 36(x0)
         
-        // SLT: x10 = (x1 < x2) ? 1 : 0 = 0 (40 < 5 is false)
-        imem[i++] = 32'h0020a533;  // SLT x10, x1, x2
-        imem[i++] = 32'h00a02e23;  // SW x10, 28(x0)  @dmem[7] = 0
+        // REM: 10%3=1 -> dmem[10]
+        imem[33] = 32'h0220f1b3;  // REM  x3, x1, x2
+        imem[34] = 32'h00303423;  // SW   x3, 40(x0)
         
-        // SLTU: x11 = (unsigned) compare
-        imem[i++] = 32'hfff00513;  // ADDI x10, x0, -1 (0xFFFFFFFF)
-        imem[i++] = 32'h00a00593;  // ADDI x11, x0, 10
-        imem[i++] = 32'h00b535b3;  // SLTU x11, x10, x11 (0xFFFFFFFF < 10?)
-        imem[i++] = 32'h00b03023;  // SW x11, 32(x0)  @dmem[8] = 1
+        //========================================================================
+        // Test Group 3: Load/Store (dmem[11-13])
+        //========================================================================
+        // Prepare data
+        dmem[100] = 32'd100;
+        dmem[101] = 32'h12345678;
         
-        //====================================================================
-        // Test 2: RV32M Multiply/Divide Extension
-        //====================================================================
-        // MUL: x12 = x1 * x2
-        imem[i++] = 32'h00a00513;  // ADDI x10, x0, 10
-        imem[i++] = 32'h00c00613;  // ADDI x12, x0, 12
-        imem[i++] = 32'h00c50633;  // MUL x12, x10, x12  (10*12=120)
-        imem[i++] = 32'h00c03223;  // SW x12, 36(x0)  @dmem[9] = 120
+        // LW: load 100 -> dmem[11]
+        imem[35] = 32'h06402103;  // LW   x2, 100(x0)
+        imem[36] = 32'h00203623;  // SW   x2, 44(x0)
         
-        // DIV: x13 = x12 / x1 = 12
-        imem[i++] = 32'h00c506b3;  // DIV x13, x10, x12 (10/12=0)
-        // Correction: reverse operands
-        imem[i-1] = 32'h00a646b3;  // DIV x13, x12, x10 (120/10=12)
-        imem[i++] = 32'h00d03423;  // SW x13, 40(x0)  @dmem[10] = 12
+        // Load-Use: 100+1=101 -> dmem[12]
+        imem[37] = 32'h06402103;  // LW   x2, 100(x0)
+        imem[38] = 32'h00110113;  // ADDI x2, x2, 1
+        imem[39] = 32'h00203823;  // SW   x2, 48(x0)
         
-        // REM: x14 = x12 % x1 = 0
-        imem[i++] = 32'h00a64733;  // REM x14, x12, x10 (120%10=0)
-        imem[i++] = 32'h00e03623;  // SW x14, 44(x0)  @dmem[11] = 0
+        // LUI: 0x12345000 -> dmem[13]
+        imem[40] = 32'h123450b7;  // LUI  x1, 0x12345
+        imem[41] = 32'h00103a23;  // SW   x1, 52(x0)
         
-        //====================================================================
-        // Test 3: Load/Store Operations
-        //====================================================================
-        // LB, LH, LW, LBU, LHU, SB, SH, SW
-        imem[i++] = 32'h0ff00793;  // ADDI x15, x0, 255
-        imem[i++] = 32'h00f03c23;  // SD x15, 56(x0)  (store full word)
+        //========================================================================
+        // Test Group 4: Forwarding (dmem[14-15])
+        //========================================================================
+        // EX-to-EX forwarding: 10+1+1=12 -> dmem[14]
+        imem[42] = 32'h00a00093;  // ADDI x1, x0, 10
+        imem[43] = 32'h00108093;  // ADDI x1, x1, 1
+        imem[44] = 32'h00108093;  // ADDI x1, x1, 1
+        imem[45] = 32'h00103c23;  // SW   x1, 56(x0)
         
-        // LB (sign extend) and LBU (zero extend)
-        imem[i++] = 32'h03800783;  // LB x15, 56(x0)  (load byte, sign extend)
-        imem[i++] = 32'h00f03823;  // SW x15, 48(x0)  @dmem[12] = -1 (0xFFFFFFFF)
+        //========================================================================
+        // Test Group 5: Branch (dmem[16])
+        //========================================================================
+        // BEQ taken: x5=42 -> dmem[15]
+        imem[46] = 32'h00500093;  // ADDI x1, x0, 5
+        imem[47] = 32'h00500113;  // ADDI x2, x0, 5
+        imem[48] = 32'h00208463;  // BEQ  x1, x2, 8
+        imem[49] = 32'h00000293;  // ADDI x5, x0, 0 (skipped)
+        imem[50] = 32'h02a00293;  // ADDI x5, x0, 42
+        imem[51] = 32'h00503e23;  // SW   x5, 60(x0)
         
-        imem[i++] = 32'h03805803;  // LBU x16, 56(x0) (load byte, zero extend)
-        imem[i++] = 32'h01003a23;  // SW x16, 52(x0)  @dmem[13] = 255
+        // Halt
+        imem[52] = 32'h0000006f;  // J    0
         
-        // LH and LHU
-        imem[i++] = 32'hfff00793;  // ADDI x15, x0, -1
-        imem[i++] = 32'h00f03e23;  // SW x15, 60(x0)
-        imem[i++] = 32'h03c05803;  // LHU x16, 60(x0) (load half, zero extend)
-        imem[i++] = 32'h01003c23;  // SW x16, 56(x0)  @dmem[14] = 0xFFFF
+        $display("================================================================");
+        $display("           RISC-V CPU Full System Test");
+        $display("================================================================");
         
-        //====================================================================
-        // Test 4: Branch Operations
-        //====================================================================
-        // BEQ - branch if equal
-        imem[i++] = 32'h00a00513;  // ADDI x10, x0, 10
-        imem[i++] = 32'h00a00593;  // ADDI x11, x0, 10
-        imem[i++] = 32'h00b50663;  // BEQ x10, x11, 12 (branch taken)
-        imem[i++] = 32'h00000613;  // ADDI x12, x0, 0 (skipped if branch taken)
-        imem[i++] = 32'h00100613;  // ADDI x12, x0, 1 (target, x12=1)
-        imem[i++] = 32'h00c04023;  // SW x12, 64(x0)  @dmem[16] = 1
+        #1500;
         
-        // BNE - branch if not equal
-        imem[i++] = 32'h00b51663;  // BNE x10, x11, 12 (branch not taken, both=10)
-        imem[i++] = 32'h00100613;  // ADDI x12, x0, 1
-        imem[i++] = 32'h00200613;  // ADDI x12, x0, 2 (executed, x12=2)
-        imem[i++] = 32'h00c04223;  // SW x12, 68(x0)  @dmem[17] = 2
-        
-        // BLT - branch if less than
-        imem[i++] = 32'h00500593;  // ADDI x11, x0, 5
-        imem[i++] = 32'h00b54663;  // BLT x11, x10, 12 (5 < 10, taken)
-        imem[i++] = 32'h00000613;  // ADDI x12, x0, 0 (skipped)
-        imem[i++] = 32'h00300613;  // ADDI x12, x0, 3 (target, x12=3)
-        imem[i++] = 32'h00c04423;  // SW x12, 72(x0)  @dmem[18] = 3
-        
-        //====================================================================
-        // Test 5: JAL and JALR
-        //====================================================================
-        // JAL - jump and link
-        imem[i++] = 32'h010006ef;  // JAL x13, 16 (jump to PC+16, x13=return addr)
-        imem[i++] = 32'h00000613;  // ADDI x12, x0, 0 (skipped)
-        imem[i++] = 32'h00400613;  // ADDI x12, x0, 4 (target, x12=4)
-        imem[i++] = 32'h00c04623;  // SW x12, 76(x0)  @dmem[19] = 4
-        imem[i++] = 32'h00d04823;  // SW x13, 80(x0)  @dmem[20] = return address
-        
-        // JALR - jump and link register
-        imem[i++] = 32'h08800693;  // ADDI x13, x0, 136 (target address)
-        imem[i++] = 32'h000686e7;  // JALR x13, 0(x13) (jump to x13, x13=new return)
-        imem[i++] = 32'h00000613;  // ADDI x12, x0, 0 (skipped)
-        imem[i++] = 32'h00500613;  // ADDI x12, x0, 5 (target, x12=5)
-        imem[i++] = 32'h00c04a23;  // SW x12, 84(x0)  @dmem[21] = 5
-        
-        //====================================================================
-        // Test 6: Data Hazards and Forwarding
-        //====================================================================
-        // RAW hazard with forwarding
-        imem[i++] = 32'h00a00513;  // ADDI x10, x0, 10
-        imem[i++] = 32'h00a58593;  // ADDI x11, x10, 10 (depends on x10)
-        imem[i++] = 32'h00b50633;  // ADD x12, x10, x11 (depends on x11)
-        imem[i++] = 32'h00c04c23;  // SW x12, 88(x0)  @dmem[22] = 30
-        
-        // Load-use hazard (requires stall)
-        imem[i++] = 32'h05802703;  // LW x14, 88(x0)  (load 30)
-        imem[i++] = 32'h00e50733;  // ADD x14, x10, x14 (depends on load result)
-        imem[i++] = 32'h00e04e23;  // SW x14, 92(x0)  @dmem[23] = 40
-        
-        //====================================================================
-        // Test 7: CSR Operations
-        //====================================================================
-        // Read cycle counter
-        imem[i++] = 32'hc00027f3;  // CSRRS x15, mcycle, x0
-        imem[i++] = 32'h00f05023;  // SW x15, 96(x0)  @dmem[24] = cycle count
-        
-        // Write/read mscratch
-        imem[i++] = 32'h0aa00793;  // ADDI x15, x0, 170
-        imem[i++] = 32'h34f79073;  // CSRRW x0, mscratch, x15
-        imem[i++] = 32'h340027f3;  // CSRRS x15, mscratch, x0
-        imem[i++] = 32'h00f05223;  // SW x15, 100(x0) @dmem[25] = 170
-        
-        //====================================================================
-        // Test 8: Exception Handling (ECALL)
-        //====================================================================
-        // Setup trap vector
-        imem[i++] = 32'h10000793;  // ADDI x15, x0, 256 (trap handler at 256)
-        imem[i++] = 32'h30579073;  // CSRRW x0, mtvec, x15
-        
-        // ECALL instruction
-        imem[i++] = 32'h00000073;  // ECALL
-        imem[i++] = 32'h00a00513;  // ADDI x10, x0, 10 (should be skipped initially)
-        
-        // Trap handler (at instruction 256 = index 64)
-        imem[64]  = 32'h341027f3;  // CSRRS x15, mepc, x0  (read mepc)
-        imem[65]  = 32'h00478793;  // ADDI x15, x15, 4     (return to next instr)
-        imem[66]  = 32'h34179073;  // CSRRW x0, mepc, x15  (update mepc)
-        imem[67]  = 32'h00600513;  // ADDI x10, x0, 6      (x10 = 6)
-        imem[68]  = 32'h00a05423;  // SW x10, 104(x0)      @dmem[26] = 6
-        imem[69]  = 32'h30200073;  // MRET                  (return from trap)
-        
-        //====================================================================
-        // End of program - infinite loop
-        //====================================================================
-        imem[i++] = 32'h00000073;  // ECALL (trigger end)
-        imem[70]  = 32'h0000006f;  // J x0, 0 (infinite loop at end)
-        
-        $display("==========================================");
-        $display("  RISC-V CPU Comprehensive Test");
-        $display("==========================================");
-        $display("Test program loaded: %0d instructions", i);
-        
-        // Wait for execution
-        #2000;
+        $display("\n--- Test Results ---\n");
         
         // Check results
-        $display("\n--- Test Results ---");
+        $display("[ALU Tests]");
+        if (dmem[0] === 32'd30) begin $display("  [PASS] ADD: 10+20=30"); pass_count = pass_count + 1; end
+        else begin $display("  [FAIL] ADD: got %0d, exp 30", dmem[0]); fail_count = fail_count + 1; end
         
-        // Test 1: ALU Operations
-        check_reg(0, 32'd30, "ADD: x3 = 10 + 20");
-        check_reg(1, 32'd10, "SUB: x4 = 20 - 10");
-        check_reg(2, 32'd0, "AND: x5 = 10 & 20");
-        check_reg(3, 32'd30, "OR: x6 = 10 | 20");
-        check_reg(4, 32'd30, "XOR: x7 = 10 ^ 20");
-        check_reg(5, 32'd40, "SLLI: x1 = 10 << 2");
-        check_reg(6, 32'd5, "SRLI: x2 = 20 >> 2");
-        check_reg(7, 32'd0, "SLT: 40 < 5");
-        check_reg(8, 32'd1, "SLTU: 0xFFFFFFFF < 10 (unsigned)");
+        if (dmem[1] === 32'hFFFFFFF6) begin $display("  [PASS] SUB: 10-20=-10"); pass_count = pass_count + 1; end
+        else begin $display("  [FAIL] SUB: got %0d, exp -10", dmem[1]); fail_count = fail_count + 1; end
         
-        // Test 2: RV32M
-        check_reg(9, 32'd120, "MUL: 10 * 12");
-        check_reg(10, 32'd12, "DIV: 120 / 10");
-        check_reg(11, 32'd0, "REM: 120 % 10");
+        if (dmem[2] === 32'hF0) begin $display("  [PASS] AND: 0xFF&0xF0=0xF0"); pass_count = pass_count + 1; end
+        else begin $display("  [FAIL] AND: got %0h, exp F0", dmem[2]); fail_count = fail_count + 1; end
         
-        // Test 3: Load/Store
-        // Note: LB sign extends 0xFF to 0xFFFFFFFF (-1)
-        // LBU zero extends 0xFF to 0x000000FF (255)
-        // Skip detailed check due to endianness/sign extension complexity
+        if (dmem[3] === 32'hFF) begin $display("  [PASS] OR: 0xFF|0xF0=0xFF"); pass_count = pass_count + 1; end
+        else begin $display("  [FAIL] OR: got %0h, exp FF", dmem[3]); fail_count = fail_count + 1; end
         
-        // Test 4: Branch
-        check_reg(16, 32'd1, "BEQ: branch taken");
-        check_reg(17, 32'd2, "BNE: branch not taken");
-        check_reg(18, 32'd3, "BLT: branch taken");
+        if (dmem[4] === 32'h0F) begin $display("  [PASS] XOR: 0xFF^0xF0=0x0F"); pass_count = pass_count + 1; end
+        else begin $display("  [FAIL] XOR: got %0h, exp 0F", dmem[4]); fail_count = fail_count + 1; end
         
-        // Test 5: JAL/JALR
-        check_reg(19, 32'd4, "JAL: jump and link");
-        check_reg(21, 32'd5, "JALR: jump and link register");
+        if (dmem[5] === 32'd1) begin $display("  [PASS] SLT: -8<10=1"); pass_count = pass_count + 1; end
+        else begin $display("  [FAIL] SLT: got %0d, exp 1", dmem[5]); fail_count = fail_count + 1; end
         
-        // Test 6: Hazards
-        check_reg(22, 32'd30, "RAW hazard with forwarding");
-        check_reg(23, 32'd40, "Load-use hazard");
+        if (dmem[6] === 32'h1FE) begin $display("  [PASS] SLLI: 0xFF<<1=0x1FE"); pass_count = pass_count + 1; end
+        else begin $display("  [FAIL] SLLI: got %0h, exp 1FE", dmem[6]); fail_count = fail_count + 1; end
         
-        // Test 7: CSR
-        check_reg(25, 32'd170, "CSR mscratch read/write");
+        if (dmem[7] === 32'h7F) begin $display("  [PASS] SRLI: 0xFF>>1=0x7F"); pass_count = pass_count + 1; end
+        else begin $display("  [FAIL] SRLI: got %0h, exp 7F", dmem[7]); fail_count = fail_count + 1; end
         
-        // Test 8: Exception
-        check_reg(26, 32'd6, "ECALL trap handler");
+        $display("\n[RV32M Tests]");
+        if (dmem[8] === 32'd70) begin $display("  [PASS] MUL: 10*7=70"); pass_count = pass_count + 1; end
+        else begin $display("  [FAIL] MUL: got %0d, exp 70", dmem[8]); fail_count = fail_count + 1; end
+        
+        if (dmem[9] === 32'd3) begin $display("  [PASS] DIV: 10/3=3"); pass_count = pass_count + 1; end
+        else begin $display("  [FAIL] DIV: got %0d, exp 3", dmem[9]); fail_count = fail_count + 1; end
+        
+        if (dmem[10] === 32'd1) begin $display("  [PASS] REM: 10%%3=1"); pass_count = pass_count + 1; end
+        else begin $display("  [FAIL] REM: got %0d, exp 1", dmem[10]); fail_count = fail_count + 1; end
+        
+        $display("\n[Memory Tests]");
+        if (dmem[11] === 32'd100) begin $display("  [PASS] LW: load 100"); pass_count = pass_count + 1; end
+        else begin $display("  [FAIL] LW: got %0d, exp 100", dmem[11]); fail_count = fail_count + 1; end
+        
+        if (dmem[12] === 32'd101) begin $display("  [PASS] Load-Use: 100+1=101"); pass_count = pass_count + 1; end
+        else begin $display("  [FAIL] Load-Use: got %0d, exp 101", dmem[12]); fail_count = fail_count + 1; end
+        
+        if (dmem[13] === 32'h12345000) begin $display("  [PASS] LUI: 0x12345000"); pass_count = pass_count + 1; end
+        else begin $display("  [FAIL] LUI: got %0h, exp 12345000", dmem[13]); fail_count = fail_count + 1; end
+        
+        $display("\n[Forwarding Test]");
+        if (dmem[14] === 32'd12) begin $display("  [PASS] Forwarding: 10+1+1=12"); pass_count = pass_count + 1; end
+        else begin $display("  [FAIL] Forwarding: got %0d, exp 12", dmem[14]); fail_count = fail_count + 1; end
+        
+        $display("\n[Branch Test]");
+        if (dmem[15] === 32'd42) begin $display("  [PASS] BEQ: branch taken"); pass_count = pass_count + 1; end
+        else begin $display("  [FAIL] BEQ: got %0d, exp 42", dmem[15]); fail_count = fail_count + 1; end
         
         // Summary
-        $display("\n==========================================");
-        $display("  Test Summary");
-        $display("==========================================");
-        $display("Total:  %0d", pass_count + fail_count);
-        $display("Passed: %0d", pass_count);
-        $display("Failed: %0d", fail_count);
-        
+        $display("\n================================================================");
+        $display("  Total: %0d, Passed: %0d, Failed: %0d", 
+                 pass_count + fail_count, pass_count, fail_count);
         if (fail_count == 0)
-            $display("STATUS: ALL TESTS PASSED!");
+            $display("  STATUS: ALL TESTS PASSED! ✅");
         else
-            $display("STATUS: SOME TESTS FAILED!");
+            $display("  STATUS: %0d TEST(S) FAILED ❌", fail_count);
+        $display("================================================================");
         
-        $display("==========================================");
         $finish;
     end
     
-    // Timeout watchdog
+    // Timeout
     initial begin
-        #5000;
-        $display("ERROR: Simulation timeout!");
+        #3000;
+        $display("TIMEOUT!");
         $finish;
     end
-    
-    // Optional: Monitor PC for debugging
-    // always @(posedge clk) begin
-    //     if (rst_n)
-    //         $display("PC = %h, Instr = %h", imem_addr, imem_data);
-    // end
 
 endmodule

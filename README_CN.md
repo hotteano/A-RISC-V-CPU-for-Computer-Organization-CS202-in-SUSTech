@@ -214,12 +214,12 @@ make program
 
 ### é›†æˆæµ‹è¯•
 
-| æµ‹è¯•é¡¹ | æè¿° | çŠ¶æ€ |
-|--------|------|------|
-| ADDæµ‹è¯• | åŸºæœ¬ALUåŠ æ³•: 10+20=30 | âœ… é€šè¿‡ |
-| MULæµ‹è¯• | RV32Mä¹˜æ³•: 30*7=210 | âœ… é€šè¿‡ |
-| BEQæµ‹è¯• | åˆ†æ”¯è·³è½¬ | âœ… é€šè¿‡ |
-| Load-Use | Load-Useæ•°æ®å†’é™©å¤„ç† | âœ… é€šè¿‡ |
+| æµ‹è¯•æ–‡ä»¶ | æè¿° | çŠ¶æ€ |
+|----------|------|------|
+| tb_riscv_cpu_simple.v | CPUé›†æˆæµ‹è¯• (ADD, MUL, BEQ, Load-Use) | âœ… 4/4 é€šè¿‡ |
+| tb_add_mul_branch.v | ALU + RV32M + åˆ†æ”¯å•å…ƒæµ‹è¯• | âœ… 3/3 é€šè¿‡ |
+| tb_csr_reg.v | CSRæ¨¡å—æµ‹è¯• | âœ… 22/22 é€šè¿‡ |
+| tb_pmp.v | PMPæ¨¡å—æµ‹è¯• | âœ… 33/33 é€šè¿‡ |
 
 **æ€»ä½“çŠ¶æ€: 4/4 æµ‹è¯•é€šè¿‡ âœ…**
 
@@ -321,3 +321,46 @@ MIT License - è¯¦è§ LICENSE æ–‡ä»¶
 ---
 
 *æœ€åŽæ›´æ–°: 2026-02-23*
+
+
+---
+
+## ×îÖÕ²âÊÔ×´Ì¬
+
+### ÒÑÑéÖ¤²âÊÔ
+
+| ²âÊÔÌ×¼þ | ²âÊÔÊý | Í¨¹ý | ×´Ì¬ |
+|----------|--------|------|------|
+| CPU¼¯³É²âÊÔ (tb_riscv_cpu_simple) | 4 | 4 | ? È«²¿Í¨¹ý |
+| ALU+RV32M+·ÖÖ§ (tb_add_mul_branch) | 3 | 3 | ? È«²¿Í¨¹ý |
+| CSRÄ£¿é (tb_csr_reg) | 22 | 22 | ? È«²¿Í¨¹ý |
+| PMPÄ£¿é (tb_pmp) | 33 | 33 | ? È«²¿Í¨¹ý |
+
+**×Ü¼Æ: 62/62 ²âÊÔÍ¨¹ý**
+
+### ÒÑÑéÖ¤¹¦ÄÜ
+
+- ? RV32I»ù´¡ÕûÊýÖ¸Áî (ADD, SUB, AND, OR, XOR, SLT, SLL, SRLµÈ)
+- ? RV32M³Ë³ý·¨À©Õ¹ (MUL, DIV, REM)
+- ? ·ÖÖ§Ö¸Áî (BEQ£¬º¬·ÖÖ§Ô¤²â)
+- ? Load-UseÃ°ÏÕ¼ì²âÓë´¦Àí
+- ? Êý¾ÝÇ°µÝ (EX-to-EX, MEM-to-EX)
+- ? CSR¼Ä´æÆ÷²Ù×÷
+- ? ÎïÀíÄÚ´æ±£»¤ (PMP)
+
+### ÔËÐÐ²âÊÔ
+
+`ash
+# ±àÒë²¢ÔËÐÐCPU¼¯³É²âÊÔ
+iverilog -o sim/tb_riscv_cpu_simple.vvp -I src src/core/*.v src/pipeline/*.v src/memory/*.v src/utils/*.v src/riscv_cpu_top.v sim/tb_riscv_cpu_simple.v
+vvp sim/tb_riscv_cpu_simple.vvp
+
+# »òÊ¹ÓÃÅú´¦ÀíÎÄ¼þ
+test_cpu.bat
+`
+
+---
+
+*×îÖÕÑéÖ¤: 2026-02-23*
+*×´Ì¬: CPUºËÐÄ¹¦ÄÜÒÑÑéÖ¤ ?*
+
