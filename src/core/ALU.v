@@ -26,6 +26,12 @@ module ALU (
     localparam ALU_AUIPC   = 6'b010001;
     localparam ALU_JAL     = 6'b010010;
     localparam ALU_JALR    = 6'b010011;
+    localparam ALU_BEQ     = 6'b001010;
+    localparam ALU_BNE     = 6'b001011;
+    localparam ALU_BLT     = 6'b001100;
+    localparam ALU_BGE     = 6'b001101;
+    localparam ALU_BLTU    = 6'b001110;
+    localparam ALU_BGEU    = 6'b001111;
     localparam ALU_PASS_B  = 6'b011000;
     
     // RV32M Multiply Extension
@@ -67,6 +73,12 @@ module ALU (
             ALU_AUIPC:  result = a + b;
             ALU_JAL, 
             ALU_JALR:   result = a + 32'd4;  // Return address
+            ALU_BEQ, 
+            ALU_BNE, 
+            ALU_BLT, 
+            ALU_BGE, 
+            ALU_BLTU, 
+            ALU_BGEU:   result = a + b;  // Branch target = PC + imm
             ALU_PASS_B: result = b;
             
             // RV32M Multiply Extension

@@ -990,3 +990,47 @@ Computer Organization Course (CS202) - SUSTech
 1. RISC-V Instruction Set Manual, Volume I: User-Level ISA
 2. RISC-V Instruction Set Manual, Volume II: Privileged Architecture  
 3. Computer Organization and Design RISC-V Edition (Patterson & Hennessy)
+
+
+---
+
+## Debug Log
+
+### Fixed Issues
+
+#### 1. BEQ Branch Target Calculation Error ?
+- **Symptom**: BEQ instruction jumping to address 0 instead of correct target
+- **Root Cause**: ALU did not handle ALU_BEQ/ALU_BNE/etc. opcodes, returning 0 by default
+- **Fix**: Added branch instruction handling in ALU.v (result = a + b for PC+imm calculation)
+
+#### 2. Control Unit Missing ALU Source Selection ?
+- **Symptom**: Branch and jump instructions not calculating correct target addresses
+- **Root Cause**: OPCODE_BRANCH and OPCODE_JAL did not set alu_src_a and alu_src_b
+- **Fix**: Added proper ALU source selection in control_unit.v for branch/jump instructions
+
+#### 3. Load-Use Forwarding Signal Mismatch ?
+- **Symptom**: Load-Use hazard test failing, wrong data forwarded to dependent instruction
+- **Root Cause**: ID stage used forwarding signals based on ID/EX stage instruction instead of IF/ID stage
+- **Fix**: Separated forwarding signals in hazard_unit.v:
+  - orward_a_id/orward_b_id: Based on IF/ID instruction (for ID stage)
+  - orward_a_ex/orward_b_ex: Based on ID/EX instruction (for EX stage)
+
+#### 4. ID Stage Pipeline Register Flush Issue ?
+- **Symptom**: Instruction data not properly updated when stall/flush signals active
+- **Root Cause**: ID stage pipeline register logic did not handle stall and flush correctly
+- **Fix**: Modified id_stage.v pipeline register to prioritize flush over stall
+
+### Test Results
+
+| Test Suite | Tests | Passed | Failed | Status |
+|------------|-------|--------|--------|--------|
+| CPU Integration (tb_riscv_cpu_simple) | 4 | 4 | 0 | ? All Pass |
+| CSR Module (tb_csr_reg) | 22 | 22 | 0 | ? All Pass |
+| PMP Module (tb_pmp) | 33 | 33 | 0 | ? All Pass |
+
+**Total: 59/59 tests passing**
+
+---
+
+*Last Updated: 2026-02-23*
+
