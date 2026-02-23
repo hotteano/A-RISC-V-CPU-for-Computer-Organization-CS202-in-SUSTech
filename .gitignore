@@ -1,0 +1,239 @@
+# ============================================================================
+# RISC-V CPU Project - Git Ignore File
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Simulation Outputs (Icarus Verilog, VVP, etc.)
+# ----------------------------------------------------------------------------
+*.vvp
+*.vcd
+*.fst
+*.vpd
+*.wdb
+
+# ----------------------------------------------------------------------------
+# Test Outputs & Logs
+# ----------------------------------------------------------------------------
+*.log
+sim/*.log
+sim/test*.log
+
+# ----------------------------------------------------------------------------
+# Testbench Files (all testbenches under sim/)
+# ----------------------------------------------------------------------------
+sim/tb_*.v
+sim/tb_*.sv
+
+# Keep example/test programs if any (optional)
+# !sim/test_programs/
+
+# ----------------------------------------------------------------------------
+# Build & Synthesis Outputs
+# ----------------------------------------------------------------------------
+# Xilinx/ISE
+*.xmsgs
+*.bgn
+*.bld
+*.ncd
+*.ngc
+*.ngd
+*.ngr
+*.pad
+*.par
+*.pcf
+*.prj
+*.ptwx
+*.stx
+*.syr
+*.twr
+*.twx
+*.unroutes
+*.ut
+*.xpi
+*.xst
+*.xwbt
+*_bitgen.xwbt
+*_map.map
+*_map.mrp
+*_map.ngm
+*_map.xrpt
+*_ngdbuild.xrpt
+*_pad.csv
+*_pad.txt
+*_par.xrpt
+*_synthesis.log
+*_usage.xml
+*_xpa.xml
+*_xst.xrpt
+
+# Vivado
+*.cache
+*.hw
+*.ip_user_files
+*.runs
+*.sim
+*.srcs
+*.str
+*.jou
+*.pb
+*.dcp
+*.xdc
+!constraints/*.xdc
+
+# Quartus
+*.qpf
+*.qsf
+*.qws
+*.sof
+*.pof
+*.rbf
+*.done
+*.map
+*.pin
+*.summary
+*.smsg
+
+# ----------------------------------------------------------------------------
+# Editor & IDE Files
+# ----------------------------------------------------------------------------
+# VS Code
+.vscode/
+*.code-workspace
+
+# Vim/Neovim
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+
+# Emacs
+*~
+\#*\#
+\#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# JetBrains (IntelliJ, CLion, etc.)
+.idea/
+*.iml
+*.iws
+out/
+
+# Eclipse
+.project
+.cproject
+.settings/
+
+# Notepad++
+nppBackup/
+
+# ----------------------------------------------------------------------------
+# OS Generated Files
+# ----------------------------------------------------------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.nfs*
+
+# ----------------------------------------------------------------------------
+# Backup & Temporary Files
+# ----------------------------------------------------------------------------
+*.bak
+*.tmp
+*.temp
+*.orig
+*.rej
+*.sav
+
+# ----------------------------------------------------------------------------
+# Batch/Script Output
+# ----------------------------------------------------------------------------
+*.bat
+!test_cpu.bat
+
+# ----------------------------------------------------------------------------
+# Python (if any helper scripts)
+# ----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ----------------------------------------------------------------------------
+# Documentation Build
+# ----------------------------------------------------------------------------
+_site/
+*.pdf
+*.docx
+
+# ----------------------------------------------------------------------------
+# Archives
+# ----------------------------------------------------------------------------
+*.zip
+*.tar.gz
+*.tar.bz2
+*.rar
+*.7z
+
+# ============================================================================
+# DO NOT IGNORE (Explicitly keep these)
+# ============================================================================
+# Source code
+!src/**/*.v
+!src/**/*.vh
+!src/**/*.sv
+
+# Documentation
+!README*.md
+!LICENSE*
+!AGENTS.md
+!CONTRIBUTING.md
+!CHANGELOG.md
+
+# Constraints (FPGA)
+!constraints/
+!constraints/*.xdc
+!constraints/*.ucf
+
+# Memory initialization files (if used in FPGA)
+!*.coe
+!*.mif
+!data/*.hex
+!data/*.coe

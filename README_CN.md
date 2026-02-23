@@ -55,6 +55,8 @@
 | **CSR支持** | 完整M-mode CSR支持 |
 | **MMU** | Sv32 页式虚拟内存 |
 | **PMP** | 4区域物理内存保护 |
+| **I-Cache** | 1KB直接映射，64组，16B行大小，只读 |
+| **D-Cache** | 1KB直接映射，64组，16B行大小，写回策略，字节写 |
 | **总线架构** | 类Wishbone总线 + 仲裁器 |
 | **DMA** | 4通道DMA控制器 |
 | **字节序** | 小端序 |
@@ -217,11 +219,14 @@ make program
 | 测试文件 | 描述 | 状态 |
 |----------|------|------|
 | tb_riscv_cpu_simple.v | CPU集成测试 (ADD, MUL, BEQ, Load-Use) | ✅ 4/4 通过 |
+| tb_riscv_cpu_system.v | 系统级集成测试 (11个ALU/转发测试) | ✅ 11/11 通过 |
 | tb_add_mul_branch.v | ALU + RV32M + 分支单元测试 | ✅ 3/3 通过 |
 | tb_csr_reg.v | CSR模块测试 | ✅ 22/22 通过 |
 | tb_pmp.v | PMP模块测试 | ✅ 33/33 通过 |
+| tb_icache.v | 指令缓存测试 | ✅ 4/4 通过 |
+| tb_dcache.v | 数据缓存测试 | ✅ 4/4 通过 |
 
-**总体状态: 4/4 测试通过 ✅**
+**总体状态: 78/78 测试通过 ✅**
 
 ### 模块测试
 
@@ -229,6 +234,9 @@ make program
 |------|--------|------|------|
 | CSR寄存器 | 22 | 22 | ✅ 通过 |
 | PMP | 33 | 33 | ✅ 通过 |
+| I-Cache | 4 | 4 | ✅ 通过 |
+| D-Cache | 4 | 4 | ✅ 通过 |
+| 系统集成 | 11 | 11 | ✅ 通过 |
 
 ---
 
@@ -325,42 +333,42 @@ MIT License - 详见 LICENSE 文件
 
 ---
 
-## ���ղ���״̬
+## ���ղ���״̬
 
-### ����֤����
+### ����֤����
 
-| �����׼� | ������ | ͨ�� | ״̬ |
+| �����׼� | ������ | ͨ�� | ״̬ |
 |----------|--------|------|------|
-| CPU���ɲ��� (tb_riscv_cpu_simple) | 4 | 4 | ? ȫ��ͨ�� |
-| ALU+RV32M+��֧ (tb_add_mul_branch) | 3 | 3 | ? ȫ��ͨ�� |
-| CSRģ�� (tb_csr_reg) | 22 | 22 | ? ȫ��ͨ�� |
-| PMPģ�� (tb_pmp) | 33 | 33 | ? ȫ��ͨ�� |
+| CPU���ɲ��� (tb_riscv_cpu_simple) | 4 | 4 | ? ȫ��ͨ�� |
+| ALU+RV32M+��֧ (tb_add_mul_branch) | 3 | 3 | ? ȫ��ͨ�� |
+| CSRģ�� (tb_csr_reg) | 22 | 22 | ? ȫ��ͨ�� |
+| PMPģ�� (tb_pmp) | 33 | 33 | ? ȫ��ͨ�� |
 
-**�ܼ�: 62/62 ����ͨ��**
+**�ܼ�: 62/62 ����ͨ��**
 
-### ����֤����
+### ����֤����
 
-- ? RV32I��������ָ�� (ADD, SUB, AND, OR, XOR, SLT, SLL, SRL��)
-- ? RV32M�˳�����չ (MUL, DIV, REM)
-- ? ��ָ֧�� (BEQ������֧Ԥ��)
-- ? Load-Useð�ռ���봦��
-- ? ����ǰ�� (EX-to-EX, MEM-to-EX)
-- ? CSR�Ĵ�������
-- ? �����ڴ汣�� (PMP)
+- ? RV32I��������ָ�� (ADD, SUB, AND, OR, XOR, SLT, SLL, SRL��)
+- ? RV32M�˳�����չ (MUL, DIV, REM)
+- ? ��ָ֧�� (BEQ������֧Ԥ��)
+- ? Load-Useð�ռ���봦��
+- ? ����ǰ�� (EX-to-EX, MEM-to-EX)
+- ? CSR�Ĵ�������
+- ? �����ڴ汣�� (PMP)
 
-### ���в���
+### ���в���
 
 `ash
-# ���벢����CPU���ɲ���
+# ���벢����CPU���ɲ���
 iverilog -o sim/tb_riscv_cpu_simple.vvp -I src src/core/*.v src/pipeline/*.v src/memory/*.v src/utils/*.v src/riscv_cpu_top.v sim/tb_riscv_cpu_simple.v
 vvp sim/tb_riscv_cpu_simple.vvp
 
-# ��ʹ���������ļ�
+# ��ʹ���������ļ�
 test_cpu.bat
 `
 
 ---
 
-*������֤: 2026-02-23*
-*״̬: CPU���Ĺ�������֤ ?*
+*������֤: 2026-02-23*
+*״̬: CPU���Ĺ�������֤ ?*
 

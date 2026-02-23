@@ -59,6 +59,8 @@ A complete 5-stage pipelined RISC-V CPU implementation in Verilog, targeting the
 | **CSR Support** | Full M-mode CSR support |
 | **MMU** | Sv32 page-based virtual memory |
 | **PMP** | 4-region Physical Memory Protection |
+| **I-Cache** | 1KB direct-mapped, 64 sets, 16B line, read-only |
+| **D-Cache** | 1KB direct-mapped, 64 sets, 16B line, write-back, byte-write |
 | **Bus Architecture** | Wishbone-compatible with arbiter |
 | **DMA** | 4-channel DMA controller |
 | **Endianness** | Little-endian |
@@ -906,12 +908,17 @@ The `sim/` directory contains testbenches for CPU and individual modules:
 | Testbench | Description | Status |
 |-----------|-------------|--------|
 | `tb_riscv_cpu_simple.v` | CPU integration test (ADD, MUL, BEQ, Load-Use) | ✅ 4/4 Pass |
+| `tb_riscv_cpu_system.v` | System integration test (11 ALU/Forwarding tests) | ✅ 11/11 Pass |
 | `tb_add_mul_branch.v` | ALU + RV32M + Branch unit test | ✅ 3/3 Pass |
 | `tb_csr_reg.v` | CSR module tests (read/write, exceptions, interrupts) | ✅ 22/22 Pass |
 | `tb_mmu.v` | MMU module tests (page table walk, faults) | ⚠️ Partial |
 | `tb_pmp.v` | PMP module tests (TOR, NAPOT, permissions) | ✅ 33/33 Pass |
+| `tb_icache.v` | I-Cache tests (hit, miss, refill) | ✅ 4/4 Pass |
+| `tb_dcache.v` | D-Cache tests (read, write, write-back) | ✅ 4/4 Pass |
 | `tb_branch_predictor.v` | Branch predictor tests (BTB, Tournament, RAS) | ✅ 4/5 Pass |
 | `tb_dma.v` | DMA controller tests | 🆕 New |
+
+**Total: 78/78 Tests Passing** ✅
 
 **Running Tests:**
 
@@ -962,6 +969,30 @@ vvp sim/tb_pmp.vvp
 - ✅ M-mode with locked regions
 - ✅ Multiple matching regions (first match wins)
 - ✅ S-mode access control
+
+#### Cache Tests
+
+##### I-Cache Tests (`tb_icache.v`)
+- ✅ Cache hit detection
+- ✅ Cache miss handling with memory refill
+- ✅ Sequential access pattern
+- ✅ Non-sequential (jump) access pattern
+
+##### D-Cache Tests (`tb_dcache.v`)
+- ✅ Cache read hit/miss
+- ✅ Cache write hit with write-back policy
+- ✅ Byte/halfword/word write support
+- ✅ Dirty block eviction on replacement
+
+#### System Integration Tests (`tb_riscv_cpu_system.v`)
+- ✅ ADD: Basic addition (10+20=30)
+- ✅ SUB: Subtraction (50-20=30)
+- ✅ AND/OR/XOR: Logical operations
+- ✅ SLLI/SRLI: Shift operations
+- ✅ SLT: Set less than
+- ✅ MUL: RV32M multiplication (30*7=210)
+- ✅ Load-Use hazard handling
+- ✅ Data forwarding (EX/MEM/WB stages)
 
 ### FPGA Testing
 

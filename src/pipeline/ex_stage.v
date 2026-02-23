@@ -94,12 +94,17 @@ module ex_stage (
     
     assign branch_taken_out = (branch & branch_cond) | jump;
     
-    // Branch target calculation
+    // Branch/Jump target calculation
+    // For JAL: target = PC + imm (alu calculates PC+4 for return address)
+    // For JALR: target = (rs1 + imm) & ~1
+    // For Branch: target = PC + imm
     always @(*) begin
         if (jump && (alu_op == `ALU_JALR))
             branch_target_out = {alu_result[31:1], 1'b0};  // JALR
-        else
-            branch_target_out = alu_result;  // PC + imm for branch/JAL
+        else if (jump)  // JAL
+            branch_target_out = pc + imm;  // JAL target = PC + imm
+        else  // Branch
+            branch_target_out = alu_result;  // PC + imm for branch
     end
     
     // EX/MEM Pipeline Register
