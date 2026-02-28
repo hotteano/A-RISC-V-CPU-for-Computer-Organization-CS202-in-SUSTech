@@ -13,9 +13,9 @@ OBJDUMP = $(PREFIX)-objdump
 SIZE = $(PREFIX)-size
 
 # Flags
-CFLAGS = -march=rv32i -mabi=ilp32 -O2 -Wall -nostdlib -ffreestanding
-ASFLAGS = -march=rv32i -mabi=ilp32
-LDFLAGS = -T linker.ld -nostdlib
+CFLAGS = -march=rv32im_zicsr -mabi=ilp32 -O2 -Wall -nostdlib -ffreestanding
+ASFLAGS = -march=rv32im_zicsr -mabi=ilp32
+LDFLAGS = -m elf32lriscv -T linker.ld -nostdlib
 
 # Source files
 C_SOURCES = $(wildcard *.c)

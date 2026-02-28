@@ -229,18 +229,18 @@ void delay(volatile int count) {
     while (count--);
 }
 
-/******************************************************************************
- * Entry Point (_start)
- ******************************************************************************/
-void _start(void) {
-    // Initialize stack pointer
-    __asm__ volatile (
-        "li sp, 0x00010000\n"
-    );
+// /******************************************************************************
+//  * Entry Point (_start)
+//  ******************************************************************************/
+// void _start(void) {
+//     // Initialize stack pointer
+//     __asm__ volatile (
+//         "li sp, 0x00010000\n"
+//     );
     
-    // Call main
-    main();
+//     // Call main
+//     main();
     
-    // Halt
-    while (1);
-}
+//     // Halt
+//     while (1);
+// }
