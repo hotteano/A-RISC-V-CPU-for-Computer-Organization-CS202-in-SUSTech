@@ -4,7 +4,7 @@
 ################################################################################
 
 # Toolchain (RISC-V GNU Toolchain)
-PREFIX = riscv32-unknown-elf
+PREFIX = riscv64-unknown-elf
 CC = $(PREFIX)-gcc
 AS = $(PREFIX)-as
 LD = $(PREFIX)-ld
