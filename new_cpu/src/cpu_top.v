@@ -56,45 +56,45 @@ module riscv_cpu_top_cache (
         .dmem_ready(cpu_dmem_ready)
     );
 
-    //========================================================================
+    // ========================================================================
     // I-Cache
-    //========================================================================
-    // icache u_icache (
-    //     .clk(clk),
-    //     .rst_n(rst_n),
-    //     // CPU interface
-    //     .cpu_addr(cpu_imem_addr),
-    //     .cpu_rdata(cpu_imem_data),
-    //     .cpu_re(cpu_imem_re),
-    //     .cpu_ready(cpu_imem_ready),
-    //     // Memory interface
-    //     .mem_addr(imem_addr),
-    //     .mem_rdata(imem_data),
-    //     .mem_re(imem_re),
-    //     .mem_ready(imem_ready)
-    // );
+    // ========================================================================
+    icache u_icache (
+        .clk(clk),
+        .rst_n(rst_n),
+        // CPU interface
+        .cpu_addr(cpu_imem_addr),
+        .cpu_rdata(cpu_imem_data),
+        .cpu_re(cpu_imem_re),
+        .cpu_ready(cpu_imem_ready),
+        // Memory interface
+        .mem_addr(imem_addr),
+        .mem_rdata(imem_data),
+        .mem_re(imem_re),
+        .mem_ready(imem_ready)
+    );
 
-    //========================================================================
+    // ========================================================================
     // D-Cache
-    //========================================================================
-    // dcache u_dcache (
-    //     .clk(clk),
-    //     .rst_n(rst_n),
-    //     // CPU interface
-    //     .cpu_addr(cpu_dmem_addr),
-    //     .cpu_wdata(cpu_dmem_wdata),
-    //     .cpu_rdata(cpu_dmem_rdata),
-    //     .cpu_we(cpu_dmem_we),
-    //     .cpu_re(cpu_dmem_re),
-    //     .cpu_ready(cpu_dmem_ready),
-    //     .cpu_wstrb(4'b1111),  // Always word access for now
-    //     // Memory interface
-    //     .mem_addr(dmem_addr),
-    //     .mem_wdata(dmem_wdata),
-    //     .mem_rdata(dmem_rdata),
-    //     .mem_we(dmem_we),
-    //     .mem_re(dmem_re),
-    //     .mem_ready(dmem_ready)
-    // );
+    // ========================================================================
+    dcache u_dcache (
+        .clk(clk),
+        .rst_n(rst_n),
+        // CPU interface
+        .cpu_addr(cpu_dmem_addr),
+        .cpu_wdata(cpu_dmem_wdata),
+        .cpu_rdata(cpu_dmem_rdata),
+        .cpu_we(cpu_dmem_we),
+        .cpu_re(cpu_dmem_re),
+        .cpu_ready(cpu_dmem_ready),
+        .cpu_wstrb(4'b1111),  // Always word access for now
+        // Memory interface
+        .mem_addr(dmem_addr),
+        .mem_wdata(dmem_wdata),
+        .mem_rdata(dmem_rdata),
+        .mem_we(dmem_we),
+        .mem_re(dmem_re),
+        .mem_ready(dmem_ready)
+    );
 
 endmodule
