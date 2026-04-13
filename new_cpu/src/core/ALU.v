@@ -1,6 +1,6 @@
 //============================================================================
-// ALU - Arithmetic Logic Unit for RISC-V RV32I + RV32M
-// Supports: Basic integer operations + Multiply/Divide
+// ALU - Arithmetic Logic Unit for RISC-V RV32I + RV32M + RV32A + RV32F/D
+// Supports: Basic integer, multiply/divide, atomic (skeletal), FP (skeletal)
 //============================================================================
 `include "defines.vh"
 
@@ -33,7 +33,7 @@ module ALU (
     localparam ALU_BLTU    = 6'b001110;
     localparam ALU_BGEU    = 6'b001111;
     localparam ALU_PASS_B  = 6'b011000;
-    
+
     // RV32M Multiply Extension
     localparam ALU_MUL     = 6'b100000;
     localparam ALU_MULH    = 6'b100001;
@@ -43,7 +43,50 @@ module ALU (
     localparam ALU_DIVU    = 6'b100101;
     localparam ALU_REM     = 6'b100110;
     localparam ALU_REMU    = 6'b100111;
-    
+
+    // RV32A Atomic Extension
+    localparam ALU_LR      = 6'b011001;
+    localparam ALU_SC      = 6'b011010;
+    localparam ALU_AMOSWAP = 6'b011011;
+    localparam ALU_AMOADD  = 6'b011100;
+    localparam ALU_AMOXOR  = 6'b011101;
+    localparam ALU_AMOAND  = 6'b011110;
+    localparam ALU_AMOOR   = 6'b101000;
+    localparam ALU_AMOMIN  = 6'b101001;
+    localparam ALU_AMOMAX  = 6'b101010;
+    localparam ALU_AMOMINU = 6'b101011;
+    localparam ALU_AMOMAXU = 6'b101100;
+
+    // RV32F/D Floating-Point Extension
+    localparam ALU_FADD    = 6'b101101;
+    localparam ALU_FSUB    = 6'b101110;
+    localparam ALU_FMUL    = 6'b101111;
+    localparam ALU_FDIV    = 6'b110000;
+    localparam ALU_FSQRT   = 6'b110001;
+    localparam ALU_FMIN    = 6'b110010;
+    localparam ALU_FMAX    = 6'b110011;
+    localparam ALU_FEQ     = 6'b110100;
+    localparam ALU_FLT     = 6'b110101;
+    localparam ALU_FLE     = 6'b110110;
+    localparam ALU_FCVT_W_S= 6'b110111;
+    localparam ALU_FCVT_S_W= 6'b111000;
+    localparam ALU_FCLASS  = 6'b111001;
+
+    // FP helpers (skeletal implementation using Verilog real)
+    real fp_a, fp_b, fp_r;
+
+    // FCLASS bit analysis
+    wire [7:0]  fp_exp      = a[30:23];
+    wire [22:0] fp_mant     = a[22:0];
+    wire        fp_is_zero  = (fp_exp == 8'h00) && (fp_mant == 23'h0);
+    wire        fp_is_sub   = (fp_exp == 8'h00) && (fp_mant != 23'h0);
+    wire        fp_is_norm  = (fp_exp != 8'h00) && (fp_exp != 8'hFF);
+    wire        fp_is_inf   = (fp_exp == 8'hFF) && (fp_mant == 23'h0);
+    wire        fp_is_nan   = (fp_exp == 8'hFF) && (fp_mant != 23'h0);
+    wire        fp_is_snan  = fp_is_nan && !fp_mant[22];
+    wire        fp_is_qnan  = fp_is_nan && fp_mant[22];
+    wire        fp_sign     = a[31];
+
     // Signed multiplication results (64-bit)
     wire signed [63:0] mul_signed   = $signed(a) * $signed(b);
     wire signed [63:0] mul_mixed    = $signed(a) * $signed({1'b0, b});
@@ -92,7 +135,40 @@ module ALU (
             ALU_DIVU:   result = div_unsigned;
             ALU_REM:    result = rem_signed;
             ALU_REMU:   result = rem_unsigned;
-            
+
+            // RV32A Atomic Extension (skeletal ALU-level implementation)
+            ALU_LR:      result = a;
+            ALU_SC:      result = b;
+            ALU_AMOSWAP: result = b;
+            ALU_AMOADD:  result = a + b;
+            ALU_AMOXOR:  result = a ^ b;
+            ALU_AMOAND:  result = a & b;
+            ALU_AMOOR:   result = a | b;
+            ALU_AMOMIN:  result = ($signed(a) < $signed(b)) ? a : b;
+            ALU_AMOMAX:  result = ($signed(a) > $signed(b)) ? a : b;
+            ALU_AMOMINU: result = (a < b) ? a : b;
+            ALU_AMOMAXU: result = (a > b) ? a : b;
+
+            // RV32F/D Floating-Point Extension (skeletal implementation)
+            // Note: $bitstoshortreal/$shortrealtobits require SystemVerilog-2012
+            ALU_FADD:     begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); fp_r = fp_a + fp_b;       result = $shortrealtobits(fp_r); end
+            ALU_FSUB:     begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); fp_r = fp_a - fp_b;       result = $shortrealtobits(fp_r); end
+            ALU_FMUL:     begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); fp_r = fp_a * fp_b;       result = $shortrealtobits(fp_r); end
+            ALU_FDIV:     begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); fp_r = fp_a / fp_b;       result = $shortrealtobits(fp_r); end
+            ALU_FSQRT:    begin fp_a = $bitstoshortreal(a); fp_r = $sqrt(fp_a);                                      result = $shortrealtobits(fp_r); end
+            ALU_FMIN:     begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); result = (fp_a < fp_b) ? a : b; end
+            ALU_FMAX:     begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); result = (fp_a > fp_b) ? a : b; end
+            ALU_FEQ:      begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); result = (fp_a == fp_b) ? 32'd1 : 32'd0; end
+            ALU_FLT:      begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); result = (fp_a < fp_b)  ? 32'd1 : 32'd0; end
+            ALU_FLE:      begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); result = (fp_a <= fp_b) ? 32'd1 : 32'd0; end
+            ALU_FCVT_W_S: begin fp_a = $bitstoshortreal(a); result = $signed($rtoi(fp_a)); end
+            ALU_FCVT_S_W: begin fp_r = $itor($signed(a)); result = $shortrealtobits(fp_r); end
+            ALU_FCLASS:   result = {22'b0, fp_is_qnan, fp_is_snan, fp_is_inf && !fp_sign,
+                                    fp_is_norm && !fp_sign, fp_is_sub && !fp_sign,
+                                    fp_is_zero && !fp_sign, fp_is_zero && fp_sign,
+                                    fp_is_sub && fp_sign, fp_is_norm && fp_sign,
+                                    fp_is_inf && fp_sign};
+
             default:    result = 32'd0;
         endcase
     end

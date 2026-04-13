@@ -104,7 +104,15 @@
 `define OPCODE_LUI       7'b0110111
 `define OPCODE_AUIPC     7'b0010111
 `define OPCODE_FENCE     7'b0001111
+`define OPCODE_AMO       7'b0101111
 `define OPCODE_SYSTEM    7'b1110011
+`define OPCODE_LOAD_FP   7'b0000111
+`define OPCODE_STORE_FP  7'b0100111
+`define OPCODE_MADD      7'b1000011
+`define OPCODE_MSUB      7'b1000111
+`define OPCODE_NMSUB     7'b1001011
+`define OPCODE_NMADD     7'b1001111
+`define OPCODE_OP_FP     7'b1010011
 
 //----------------------------------------------------------------------------
 // Funct3 Definitions
@@ -144,6 +152,21 @@
 `define FUNCT3_BGE       3'b101
 `define FUNCT3_BLTU      3'b110
 `define FUNCT3_BGEU      3'b111
+// AMO
+`define FUNCT3_AMO       3'b010
+// FP
+`define FUNCT3_FSGNJ     3'b000
+`define FUNCT3_FSGNJN    3'b001
+`define FUNCT3_FSGNJX    3'b010
+`define FUNCT3_FMIN      3'b000
+`define FUNCT3_FMAX      3'b001
+`define FUNCT3_FMV_X_W   3'b000
+`define FUNCT3_FCLASS    3'b001
+`define FUNCT3_FEQ       3'b010
+`define FUNCT3_FLT       3'b001
+`define FUNCT3_FLE       3'b000
+`define FUNCT3_FCVT_W    3'b000
+`define FUNCT3_FCVT_WU   3'b000
 // SYSTEM
 `define FUNCT3_PRIV      3'b000
 `define FUNCT3_CSRRW     3'b001
@@ -163,6 +186,47 @@
 `define FUNCT7_SLL       7'b0000000
 
 //----------------------------------------------------------------------------
+// RV32A Atomic Extension Funct5/Funct3 Definitions
+//----------------------------------------------------------------------------
+`define FUNCT5_LR        5'b00010
+`define FUNCT5_SC        5'b00011
+`define FUNCT5_AMOSWAP   5'b00001
+`define FUNCT5_AMOADD    5'b00000
+`define FUNCT5_AMOXOR    5'b00100
+`define FUNCT5_AMOAND    5'b01100
+`define FUNCT5_AMOOR     5'b01000
+`define FUNCT5_AMOMIN    5'b10000
+`define FUNCT5_AMOMAX    5'b10100
+`define FUNCT5_AMOMINU   5'b11000
+`define FUNCT5_AMOMAXU   5'b11100
+
+//----------------------------------------------------------------------------
+// RV32F/D Floating-Point Extension Funct7 Definitions
+//----------------------------------------------------------------------------
+`define FUNCT7_FADD_S    7'b0000000
+`define FUNCT7_FADD_D    7'b0000001
+`define FUNCT7_FSUB_S    7'b0000100
+`define FUNCT7_FSUB_D    7'b0000101
+`define FUNCT7_FMUL_S    7'b0001000
+`define FUNCT7_FMUL_D    7'b0001001
+`define FUNCT7_FDIV_S    7'b0001100
+`define FUNCT7_FDIV_D    7'b0001101
+`define FUNCT7_FSQRT_S   7'b0101100
+`define FUNCT7_FSQRT_D   7'b0101101
+`define FUNCT7_FSGNJ_S   7'b0010000
+`define FUNCT7_FSGNJ_D   7'b0010001
+`define FUNCT7_FMIN_S    7'b0010100
+`define FUNCT7_FMIN_D    7'b0010101
+`define FUNCT7_FEQ_S     7'b1010000
+`define FUNCT7_FEQ_D     7'b1010001
+`define FUNCT7_FCVT_W_S  7'b1100000
+`define FUNCT7_FCVT_W_D  7'b1100001
+`define FUNCT7_FCVT_S_W  7'b1101000
+`define FUNCT7_FCVT_D_W  7'b1101001
+`define FUNCT7_FMV_X_W   7'b1110000
+`define FUNCT7_FMV_W_X   7'b1111000
+
+//----------------------------------------------------------------------------
 // RV32M Multiply Extension Funct3 Definitions
 //----------------------------------------------------------------------------
 `define FUNCT3_MUL       3'b000
@@ -175,6 +239,38 @@
 `define FUNCT3_REMU      3'b111
 
 `define FUNCT7_MUL_DIV   7'b0000001  // M-extension opcode flag
+
+//----------------------------------------------------------------------------
+// RV32A Atomic Extension ALU Operations
+//----------------------------------------------------------------------------
+`define ALU_LR           6'b011001  // Load Reserved
+`define ALU_SC           6'b011010  // Store Conditional
+`define ALU_AMOSWAP      6'b011011  // Atomic Swap
+`define ALU_AMOADD       6'b011100  // Atomic Add
+`define ALU_AMOXOR       6'b011101  // Atomic XOR
+`define ALU_AMOAND       6'b011110  // Atomic AND
+`define ALU_AMOOR        6'b101000  // Atomic OR
+`define ALU_AMOMIN       6'b101001  // Atomic Min (signed)
+`define ALU_AMOMAX       6'b101010  // Atomic Max (signed)
+`define ALU_AMOMINU      6'b101011  // Atomic Min (unsigned)
+`define ALU_AMOMAXU      6'b101100  // Atomic Max (unsigned)
+
+//----------------------------------------------------------------------------
+// RV32F/D Floating-Point Extension ALU Operations
+//----------------------------------------------------------------------------
+`define ALU_FADD         6'b101101  // FP Add
+`define ALU_FSUB         6'b101110  // FP Subtract
+`define ALU_FMUL         6'b101111  // FP Multiply
+`define ALU_FDIV         6'b110000  // FP Divide
+`define ALU_FSQRT        6'b110001  // FP Square Root
+`define ALU_FMIN         6'b110010  // FP Minimum
+`define ALU_FMAX         6'b110011  // FP Maximum
+`define ALU_FEQ          6'b110100  // FP Equal
+`define ALU_FLT          6'b110101  // FP Less Than
+`define ALU_FLE          6'b110110  // FP Less Than or Equal
+`define ALU_FCVT_W_S     6'b110111  // FP Convert to Word
+`define ALU_FCVT_S_W     6'b111000  // FP Convert from Word
+`define ALU_FCLASS       6'b111001  // FP Classify
 
 //----------------------------------------------------------------------------
 // Funct12 Definitions (SYSTEM instructions)
@@ -325,3 +421,118 @@
 // Reset Vector
 //----------------------------------------------------------------------------
 `define RESET_VECTOR     32'h0000_0000
+
+//----------------------------------------------------------------------------
+// S-Mode CSR Addresses
+//----------------------------------------------------------------------------
+`define CSR_SSTATUS      12'h100
+`define CSR_SIE          12'h104
+`define CSR_STVEC        12'h105
+`define CSR_SCOUNTEREN   12'h106
+`define CSR_SSCRATCH     12'h140
+`define CSR_SEPC         12'h141
+`define CSR_SCAUSE       12'h142
+`define CSR_STVAL        12'h143
+`define CSR_SIP          12'h144
+`define CSR_SATP         12'h180
+
+//----------------------------------------------------------------------------
+// F-Extension CSR Addresses
+//----------------------------------------------------------------------------
+`define CSR_FFLAGS       12'h001
+`define CSR_FRM          12'h002
+`define CSR_FCSR         12'h003
+
+//----------------------------------------------------------------------------
+// MISA Extension Bits
+//----------------------------------------------------------------------------
+`define MISA_A           (1 << 0)
+`define MISA_B           (1 << 1)
+`define MISA_C           (1 << 2)
+`define MISA_D           (1 << 3)
+`define MISA_E           (1 << 4)
+`define MISA_F           (1 << 5)
+`define MISA_G           (1 << 6)
+`define MISA_H           (1 << 7)
+`define MISA_I           (1 << 8)
+`define MISA_M           (1 << 12)
+`define MISA_S           (1 << 18)
+`define MISA_U           (1 << 20)
+`define MISA_X           (1 << 23)
+`define MISA_MXL_32      (1 << 30)  // RV32
+
+//----------------------------------------------------------------------------
+// Exception / Interrupt Causes (with interrupt bit)
+//----------------------------------------------------------------------------
+`define CAUSE_INST_MISALIGNED      32'h00000000
+`define CAUSE_INST_ACCESS_FAULT    32'h00000001
+`define CAUSE_ILLEGAL_INST         32'h00000002
+`define CAUSE_BREAKPOINT           32'h00000003
+`define CAUSE_LOAD_MISALIGNED      32'h00000004
+`define CAUSE_LOAD_ACCESS_FAULT    32'h00000005
+`define CAUSE_STORE_MISALIGNED     32'h00000006
+`define CAUSE_STORE_ACCESS_FAULT   32'h00000007
+`define CAUSE_ECALL_U              32'h00000008
+`define CAUSE_ECALL_S              32'h00000009
+`define CAUSE_ECALL_M              32'h0000000B
+`define CAUSE_INST_PAGE_FAULT      32'h0000000C
+`define CAUSE_LOAD_PAGE_FAULT      32'h0000000D
+`define CAUSE_STORE_PAGE_FAULT     32'h0000000F
+// Interrupt causes (bit 31 set)
+`define CAUSE_S_SOFT_INT           32'h80000001
+`define CAUSE_M_SOFT_INT           32'h80000003
+`define CAUSE_S_TIMER_INT          32'h80000005
+`define CAUSE_M_TIMER_INT          32'h80000007
+`define CAUSE_S_EXT_INT            32'h80000009
+`define CAUSE_M_EXT_INT            32'h8000000B
+
+//----------------------------------------------------------------------------
+// SATP Register Fields
+//----------------------------------------------------------------------------
+`define SATP_MODE_BARE   32'h00000000  // No translation
+`define SATP_MODE_SV32   32'h80000000  // bit 31 = 1 for RV32 Sv32
+`define SATP_ASID_SHIFT  22
+`define SATP_PPN_SHIFT   12
+
+//----------------------------------------------------------------------------
+// Sv32 Page Table Entry (PTE) Flags
+//----------------------------------------------------------------------------
+`define PTE_V            0  // Valid
+`define PTE_R            1  // Read
+`define PTE_W            2  // Write
+`define PTE_X            3  // Execute
+`define PTE_U            4  // User
+`define PTE_G            5  // Global
+`define PTE_A            6  // Accessed
+`define PTE_D            7  // Dirty
+
+//----------------------------------------------------------------------------
+// Sv32 Constants
+//----------------------------------------------------------------------------
+`define SV32_LEVELS      2
+`define SV32_PTIDX_BITS  10
+`define SV32_PTESIZE     4
+`define PAGE_SIZE        4096
+`define PAGE_OFFSET      12
+
+//----------------------------------------------------------------------------
+// CLINT / PLIC Memory Map (QEMU / Linux compatible)
+//----------------------------------------------------------------------------
+`define CLINT_BASE_ADDR  32'h02000000
+`define CLINT_SIZE       32'h00010000
+`define PLIC_BASE_ADDR   32'h0C000000
+`define PLIC_SIZE        32'h00400000
+
+//----------------------------------------------------------------------------
+// Atomic / Reservation Station
+//----------------------------------------------------------------------------
+`define RESERVE_NONE     1'b0
+`define RESERVE_VALID    1'b1
+
+//----------------------------------------------------------------------------
+// Cache / TLB Parameters (placeholders)
+//----------------------------------------------------------------------------
+`define TLB_ENTRIES      16
+`define CACHE_LINE_SIZE  16
+`define ICACHE_SETS      64
+`define DCACHE_SETS      64
