@@ -1,6 +1,6 @@
 //===================================================
-+// I_BRam - Instruction BRAM for RISC-V CPU
-+// 1KB (256 x 32-bit) Instruction Memory
+// I_BRam - Instruction BRAM for RISC-V CPU
+// 1KB (256 x 32-bit) Instruction Memory
 //===================================================
 `include "defines.vh"
 
