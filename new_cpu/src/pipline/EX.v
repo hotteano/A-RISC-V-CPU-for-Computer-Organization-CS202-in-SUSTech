@@ -19,12 +19,17 @@ module ex_stage (
     input  wire        mem_read,
     input  wire        mem_write,
     input  wire        mem_to_reg,
+    input  wire [1:0]  mem_size,
+    input  wire        mem_unsigned,
     input  wire        reg_write,
     input  wire        branch,
     input  wire        jump,
     input  wire [4:0]  rs1_addr,
     input  wire [4:0]  rs2_addr,
     input  wire [4:0]  rd_addr,
+
+    // Pipeline stall
+    input  wire        stall,
 
     // Forwarding
     input  wire [31:0] forward_mem_data,
@@ -40,6 +45,8 @@ module ex_stage (
     output reg         mem_read_out,
     output reg         mem_write_out,
     output reg         mem_to_reg_out,
+    output reg  [1:0]  mem_size_out,
+    output reg         mem_unsigned_out,
     output reg         reg_write_out,
     output reg         branch_taken_out,
     output reg  [31:0] branch_target_out
@@ -95,10 +102,12 @@ module ex_stage (
             mem_read_out      <= 1'b0;
             mem_write_out     <= 1'b0;
             mem_to_reg_out    <= 1'b0;
+            mem_size_out      <= 2'b10;
+            mem_unsigned_out  <= 1'b0;
             reg_write_out     <= 1'b0;
             branch_taken_out  <= 1'b0;
             branch_target_out <= 32'd0;
-        end else begin
+        end else if (!stall) begin
             pc_plus4_out      <= pc_plus4;
             alu_result_out    <= alu_result;
             rs2_data_out      <= alu_b_fwd;
@@ -106,6 +115,8 @@ module ex_stage (
             mem_read_out      <= mem_read;
             mem_write_out     <= mem_write;
             mem_to_reg_out    <= mem_to_reg;
+            mem_size_out      <= mem_size;
+            mem_unsigned_out  <= mem_unsigned;
             reg_write_out     <= reg_write;
             branch_taken_out  <= branch_taken || jump;
             branch_target_out <= branch_target;

@@ -42,9 +42,10 @@ module if_stage_bp (
     // PC update logic
     assign pc_plus4 = pc + 32'd4;
 
-    // Select next PC: branch resolution overrides prediction
+    // Select next PC: branch resolution > RAS > BP > sequential
     assign pc_next = pc_src ? pc_target :
-                     bp_taken ? bp_target : pc_plus4;
+                     (ras_valid ? ras_top :
+                      (bp_taken ? bp_target : pc_plus4));
 
     // Instruction memory address
     assign imem_addr = pc;
@@ -75,8 +76,37 @@ module if_stage_bp (
         end
     end
 
-    // TODO: Instantiate branch predictor
-    // branch_prediction u_bp (...);
-    // RAS u_ras (...);
+    //========================================================================
+    // Branch Predictor
+    //========================================================================
+    branch_predictor u_bp (
+        .clk           (clk),
+        .rst_n         (rst_n),
+        .pc            (pc),
+        .req           (1'b1),
+        .predict_taken (bp_taken),
+        .predict_target(bp_target),
+        .update        (branch_valid),
+        .update_pc     (branch_pc),
+        .actual_taken  (branch_taken),
+        .actual_target (branch_target)
+    );
+
+    //========================================================================
+    // Return Address Stack
+    //========================================================================
+    wire [31:0] ras_top;
+    wire        ras_valid;
+
+    return_address_stack u_ras (
+        .clk        (clk),
+        .rst_n      (rst_n),
+        .call       (1'b0),
+        .ret        (1'b0),
+        .call_pc    (pc),
+        .return_addr(pc_plus4),
+        .ras_top    (ras_top),
+        .valid      (ras_valid)
+    );
 
 endmodule

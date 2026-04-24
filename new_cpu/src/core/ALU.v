@@ -72,21 +72,6 @@ module ALU (
     localparam ALU_FCVT_S_W= 6'b111000;
     localparam ALU_FCLASS  = 6'b111001;
 
-    // FP helpers (skeletal implementation using Verilog real)
-    real fp_a, fp_b, fp_r;
-
-    // FCLASS bit analysis
-    wire [7:0]  fp_exp      = a[30:23];
-    wire [22:0] fp_mant     = a[22:0];
-    wire        fp_is_zero  = (fp_exp == 8'h00) && (fp_mant == 23'h0);
-    wire        fp_is_sub   = (fp_exp == 8'h00) && (fp_mant != 23'h0);
-    wire        fp_is_norm  = (fp_exp != 8'h00) && (fp_exp != 8'hFF);
-    wire        fp_is_inf   = (fp_exp == 8'hFF) && (fp_mant == 23'h0);
-    wire        fp_is_nan   = (fp_exp == 8'hFF) && (fp_mant != 23'h0);
-    wire        fp_is_snan  = fp_is_nan && !fp_mant[22];
-    wire        fp_is_qnan  = fp_is_nan && fp_mant[22];
-    wire        fp_sign     = a[31];
-
     // Signed multiplication results (64-bit)
     wire signed [63:0] mul_signed   = $signed(a) * $signed(b);
     wire signed [63:0] mul_mixed    = $signed(a) * $signed({1'b0, b});
@@ -149,25 +134,20 @@ module ALU (
             ALU_AMOMINU: result = (a < b) ? a : b;
             ALU_AMOMAXU: result = (a > b) ? a : b;
 
-            // RV32F/D Floating-Point Extension (skeletal implementation)
-            // Note: $bitstoshortreal/$shortrealtobits require SystemVerilog-2012
-            ALU_FADD:     begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); fp_r = fp_a + fp_b;       result = $shortrealtobits(fp_r); end
-            ALU_FSUB:     begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); fp_r = fp_a - fp_b;       result = $shortrealtobits(fp_r); end
-            ALU_FMUL:     begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); fp_r = fp_a * fp_b;       result = $shortrealtobits(fp_r); end
-            ALU_FDIV:     begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); fp_r = fp_a / fp_b;       result = $shortrealtobits(fp_r); end
-            ALU_FSQRT:    begin fp_a = $bitstoshortreal(a); fp_r = $sqrt(fp_a);                                      result = $shortrealtobits(fp_r); end
-            ALU_FMIN:     begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); result = (fp_a < fp_b) ? a : b; end
-            ALU_FMAX:     begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); result = (fp_a > fp_b) ? a : b; end
-            ALU_FEQ:      begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); result = (fp_a == fp_b) ? 32'd1 : 32'd0; end
-            ALU_FLT:      begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); result = (fp_a < fp_b)  ? 32'd1 : 32'd0; end
-            ALU_FLE:      begin fp_a = $bitstoshortreal(a); fp_b = $bitstoshortreal(b); result = (fp_a <= fp_b) ? 32'd1 : 32'd0; end
-            ALU_FCVT_W_S: begin fp_a = $bitstoshortreal(a); result = $signed($rtoi(fp_a)); end
-            ALU_FCVT_S_W: begin fp_r = $itor($signed(a)); result = $shortrealtobits(fp_r); end
-            ALU_FCLASS:   result = {22'b0, fp_is_qnan, fp_is_snan, fp_is_inf && !fp_sign,
-                                    fp_is_norm && !fp_sign, fp_is_sub && !fp_sign,
-                                    fp_is_zero && !fp_sign, fp_is_zero && fp_sign,
-                                    fp_is_sub && fp_sign, fp_is_norm && fp_sign,
-                                    fp_is_inf && fp_sign};
+            // RV32F/D Floating-Point Extension (stub - not implemented)
+            ALU_FADD,
+            ALU_FSUB,
+            ALU_FMUL,
+            ALU_FDIV,
+            ALU_FSQRT,
+            ALU_FMIN,
+            ALU_FMAX,
+            ALU_FEQ,
+            ALU_FLT,
+            ALU_FLE,
+            ALU_FCVT_W_S,
+            ALU_FCVT_S_W,
+            ALU_FCLASS:   result = 32'd0;
 
             default:    result = 32'd0;
         endcase

@@ -41,6 +41,7 @@ module branch_predictor (
 
     wire [BTB_IDX-1:0]  btb_index = pc[BTB_IDX+1:2];
     wire [BHT_BITS-1:0] bht_index = pc[BHT_BITS+1:2] ^ ghr;
+    wire [BHT_BITS-1:0] update_bht_idx = update_pc[BHT_BITS+1:2] ^ ghr;
 
     integer i;
 
@@ -72,7 +73,6 @@ module branch_predictor (
                 ghr <= {ghr[GHR_BITS-2:0], actual_taken};
 
                 // Update BHT
-                wire [BHT_BITS-1:0] update_bht_idx = update_pc[BHT_BITS+1:2] ^ ghr;
                 if (actual_taken) begin
                     if (bht[update_bht_idx] < 2'b11)
                         bht[update_bht_idx] <= bht[update_bht_idx] + 1;

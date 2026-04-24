@@ -43,11 +43,20 @@ module id_stage (
     output reg         mem_read_out,
     output reg         mem_write_out,
     output reg         mem_to_reg_out,
+    output reg  [1:0]  mem_size_out,
+    output reg         mem_unsigned_out,
     output reg         reg_write_out,
     output reg         branch_out,
     output reg         jump_out,
     output reg         is_ecall,
-    output reg         is_ebreak
+    output reg         is_ebreak,
+    output reg         is_mret,
+    output reg         is_sret,
+    output reg         is_wfi,
+    output reg         is_sfence_vma,
+    output reg         csr_we,
+    output reg         csr_re,
+    output reg  [2:0]  csr_op
 );
 
     // Control unit signals
@@ -57,12 +66,21 @@ module id_stage (
     wire        mem_read;
     wire        mem_write;
     wire        mem_to_reg;
+    wire [1:0]  mem_size;
+    wire        mem_unsigned;
     wire        reg_write;
     wire        branch;
     wire        jump;
     wire [2:0]  imm_sel;
     wire        ctrl_is_ecall;
     wire        ctrl_is_ebreak;
+    wire        ctrl_is_mret;
+    wire        ctrl_is_sret;
+    wire        ctrl_is_wfi;
+    wire        ctrl_is_sfence_vma;
+    wire        ctrl_csr_we;
+    wire        ctrl_csr_re;
+    wire [2:0]  ctrl_csr_op;
 
     // Immediate generation
     wire [31:0] imm;
@@ -97,12 +115,21 @@ module id_stage (
         .mem_read(mem_read),
         .mem_write(mem_write),
         .mem_to_reg(mem_to_reg),
+        .mem_size(mem_size),
+        .mem_unsigned(mem_unsigned),
         .reg_write(reg_write),
         .branch(branch),
         .jump(jump),
         .imm_sel(imm_sel),
         .is_ecall(ctrl_is_ecall),
-        .is_ebreak(ctrl_is_ebreak)
+        .is_ebreak(ctrl_is_ebreak),
+        .is_mret(ctrl_is_mret),
+        .is_sret(ctrl_is_sret),
+        .is_wfi(ctrl_is_wfi),
+        .is_sfence_vma(ctrl_is_sfence_vma),
+        .csr_we(ctrl_csr_we),
+        .csr_re(ctrl_csr_re),
+        .csr_op(ctrl_csr_op)
     );
 
     // ID/EX pipeline register
@@ -119,14 +146,23 @@ module id_stage (
             alu_op_out    <= `ALU_NOP;
             alu_src_a_out <= 1'b0;
             alu_src_b_out <= 1'b0;
-            mem_read_out  <= 1'b0;
-            mem_write_out <= 1'b0;
-            mem_to_reg_out<= 1'b0;
-            reg_write_out <= 1'b0;
-            branch_out    <= 1'b0;
-            jump_out      <= 1'b0;
-            is_ecall      <= 1'b0;
+            mem_read_out      <= 1'b0;
+            mem_write_out     <= 1'b0;
+            mem_to_reg_out    <= 1'b0;
+            mem_size_out      <= 2'b10;
+            mem_unsigned_out  <= 1'b0;
+            reg_write_out     <= 1'b0;
+            branch_out        <= 1'b0;
+            jump_out          <= 1'b0;
+            is_ecall          <= 1'b0;
             is_ebreak     <= 1'b0;
+            is_mret       <= 1'b0;
+            is_sret       <= 1'b0;
+            is_wfi        <= 1'b0;
+            is_sfence_vma <= 1'b0;
+            csr_we        <= 1'b0;
+            csr_re        <= 1'b0;
+            csr_op        <= 3'd0;
         end else if (!stall) begin
             pc_out        <= pc;
             pc_plus4_out  <= pc_plus4;
@@ -139,14 +175,23 @@ module id_stage (
             alu_op_out    <= alu_op;
             alu_src_a_out <= alu_src_a;
             alu_src_b_out <= alu_src_b;
-            mem_read_out  <= mem_read;
-            mem_write_out <= mem_write;
-            mem_to_reg_out<= mem_to_reg;
-            reg_write_out <= reg_write;
-            branch_out    <= branch;
-            jump_out      <= jump;
+            mem_read_out      <= mem_read;
+            mem_write_out     <= mem_write;
+            mem_to_reg_out    <= mem_to_reg;
+            mem_size_out      <= mem_size;
+            mem_unsigned_out  <= mem_unsigned;
+            reg_write_out     <= reg_write;
+            branch_out        <= branch;
+            jump_out          <= jump;
             is_ecall      <= ctrl_is_ecall;
             is_ebreak     <= ctrl_is_ebreak;
+            is_mret       <= ctrl_is_mret;
+            is_sret       <= ctrl_is_sret;
+            is_wfi        <= ctrl_is_wfi;
+            is_sfence_vma <= ctrl_is_sfence_vma;
+            csr_we        <= ctrl_csr_we;
+            csr_re        <= ctrl_csr_re;
+            csr_op        <= ctrl_csr_op;
         end
     end
 

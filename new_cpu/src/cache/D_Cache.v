@@ -22,6 +22,7 @@ module dcache (
     input  wire [31:0] mem_rdata,
     output reg         mem_we,
     output reg         mem_re,
+    output reg  [3:0]  mem_wstrb,
     input  wire        mem_ready
 );
 
@@ -65,6 +66,7 @@ module dcache (
             mem_wdata  <= 32'd0;
             mem_we     <= 1'b0;
             mem_re     <= 1'b0;
+            mem_wstrb  <= 4'b0000;
             for (i = 0; i < CACHE_SETS; i = i + 1) begin
                 valid[i] <= 1'b0;
             end
@@ -78,6 +80,7 @@ module dcache (
                 mem_addr  <= cpu_addr;
                 mem_wdata <= cpu_wdata;
                 mem_we    <= 1'b1;
+                mem_wstrb <= cpu_wstrb;
                 cpu_ready <= mem_ready;
             end else if (cpu_re) begin
                 // Read operation
@@ -104,6 +107,7 @@ module dcache (
                 cpu_ready <= 1'b0;
                 mem_we    <= 1'b0;
                 mem_re    <= 1'b0;
+                mem_wstrb <= 4'b0000;
             end
         end
     end

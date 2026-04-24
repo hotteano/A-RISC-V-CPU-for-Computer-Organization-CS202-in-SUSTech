@@ -30,6 +30,21 @@ module I_BRam #(
     wire [AW-1:0] word_addr_b = addr_b[ADDR_WIDTH-1:2];
 
     assign dout_a = mem[word_addr_a];
-    
-    
+
+    // Optional: initialize from hex file (e.g., objcopy -O verilog output)
+    initial begin
+        if (INIT_FILE != "")
+            $readmemh(INIT_FILE, mem);
+    end
+
+    // Port B: byte-wise write for programming / bootloader
+    always @(posedge clk) begin
+        if (we_b) begin
+            if (be_b[0]) mem[word_addr_b][7:0]   <= din_b[7:0];
+            if (be_b[1]) mem[word_addr_b][15:8]  <= din_b[15:8];
+            if (be_b[2]) mem[word_addr_b][23:16] <= din_b[23:16];
+            if (be_b[3]) mem[word_addr_b][31:24] <= din_b[31:24];
+        end
+    end
+
 endmodule

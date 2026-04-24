@@ -13,12 +13,21 @@ module control_unit (
     output reg         mem_read,
     output reg         mem_write,
     output reg         mem_to_reg,  // 0: ALU result, 1: memory data
+    output reg  [1:0]  mem_size,    // 00=byte, 01=half, 10=word
+    output reg         mem_unsigned,// 1=unsigned load, 0=signed load
     output reg         reg_write,
     output reg         branch,
     output reg         jump,
     output reg  [2:0]  imm_sel,     // Immediate type selector
     output reg         is_ecall,
-    output reg         is_ebreak
+    output reg         is_ebreak,
+    output reg         is_mret,
+    output reg         is_sret,
+    output reg         is_wfi,
+    output reg         is_sfence_vma,
+    output reg         csr_we,
+    output reg         csr_re,
+    output reg  [2:0]  csr_op
 );
 
     // Extract fields from instruction
@@ -61,12 +70,21 @@ module control_unit (
         mem_read   = 1'b0;
         mem_write  = 1'b0;
         mem_to_reg = 1'b0;
+        mem_size   = 2'b10;  // Default word
+        mem_unsigned= 1'b0;
         reg_write  = 1'b0;
         branch     = 1'b0;
         jump       = 1'b0;
         imm_sel    = IMM_I;
         is_ecall   = 1'b0;
         is_ebreak  = 1'b0;
+        is_mret    = 1'b0;
+        is_sret    = 1'b0;
+        is_wfi     = 1'b0;
+        is_sfence_vma = 1'b0;
+        csr_we     = 1'b0;
+        csr_re     = 1'b0;
+        csr_op     = 3'd0;
         
         case (opcode)
             OPCODE_OP_IMM: begin
@@ -168,13 +186,25 @@ module control_unit (
                 alu_src_b = 1'b1;
                 alu_op    = `ALU_ADD;
                 imm_sel   = IMM_I;
+                case (funct3)
+                    `FUNCT3_LB:  begin mem_size = 2'b00; mem_unsigned = 1'b0; end
+                    `FUNCT3_LH:  begin mem_size = 2'b01; mem_unsigned = 1'b0; end
+                    `FUNCT3_LW:  begin mem_size = 2'b10; mem_unsigned = 1'b0; end
+                    `FUNCT3_LBU: begin mem_size = 2'b00; mem_unsigned = 1'b1; end
+                    `FUNCT3_LHU: begin mem_size = 2'b01; mem_unsigned = 1'b1; end
+                endcase
             end
-            
+
             OPCODE_STORE: begin
                 mem_write = 1'b1;
                 alu_src_b = 1'b1;
                 alu_op    = `ALU_ADD;
                 imm_sel   = IMM_S;
+                case (funct3)
+                    `FUNCT3_SB: mem_size = 2'b00;
+                    `FUNCT3_SH: mem_size = 2'b01;
+                    `FUNCT3_SW: mem_size = 2'b10;
+                endcase
             end
             
             OPCODE_SYSTEM: begin
@@ -182,6 +212,26 @@ module control_unit (
                     case (instr[31:20])
                         12'b000000000000: is_ecall = 1'b1;
                         12'b000000000001: is_ebreak = 1'b1;
+                        12'b001100000010: is_mret = 1'b1;
+                        12'b000100000010: is_sret = 1'b1;
+                        12'b000100000101: is_wfi = 1'b1;
+                    endcase
+                    // SFENCE.VMA: funct7=0x09, rs2!=0
+                    if (funct7 == 7'b0001001 && instr[24:20] != 5'd0)
+                        is_sfence_vma = 1'b1;
+                end else begin
+                    // CSR instructions
+                    reg_write = 1'b1;
+                    csr_we    = 1'b1;
+                    csr_re    = 1'b1;
+                    csr_op    = funct3;
+                    case (funct3)
+                        `FUNCT3_CSRRW:  alu_op = `ALU_CSRRW;
+                        `FUNCT3_CSRRS:  alu_op = `ALU_CSRRS;
+                        `FUNCT3_CSRRC:  alu_op = `ALU_CSRRC;
+                        `FUNCT3_CSRRWI: alu_op = `ALU_CSRRW;
+                        `FUNCT3_CSRRSI: alu_op = `ALU_CSRRS;
+                        `FUNCT3_CSRRCI: alu_op = `ALU_CSRRC;
                     endcase
                 end
             end
