@@ -138,7 +138,7 @@ soc_top
 
 - `soc_top.v`：SoC 顶层
 - `cpu.v`：CPU 顶层
-- `pipline/IF.v`、`ID.v`、`EX.v`、`MEM.v`、`WB.v`
+- `pipline/IF.v`、`ID.v`、`EX.v`、`MEM.v`、`WB.v`（目录名为 `pipline`，与源码保持一致）
 - `core/ALU.v`、`CU.v`、`HC.v`
 - `cache/I_Cache.v`、`cache/D_Cache.v`
 - `bus/Arbiter.v`、`Decoder.v`、`Mux.v`、`DMA.v`
@@ -150,8 +150,8 @@ soc_top
 
 | 地址范围 | 大小 | 设备 |
 |---------|------|------|
-| 0x0000_0000 - 0x0000_3FFF | 16KB | I-BRAM |
-| 0x0000_0000 - 0x0000_3FFF | 16KB | D-BRAM |
+| 0x0000_0000 - 0x0000_3FFF | 16KB | I-BRAM（指令总线，Harvard） |
+| 0x0000_0000 - 0x0000_3FFF | 16KB | D-BRAM（数据总线，Harvard） |
 | 0x0200_0000 - 0x0200_FFFF | 64KB | CLINT |
 | 0x0C00_0000 - 0x0FFF_FFFF | 64MB | PLIC |
 | 0x1000_0000 - 0x1000_0FFF | 4KB | UART |
@@ -192,4 +192,3 @@ TEST.bat      # 运行仿真
 - `new_cpu/README.md`：新 SoC 架构概览
 - `new_cpu/architecture.md`：结构图（Mermaid）
 - `new_cpu/instructions.md`：需求与模块清单
-
